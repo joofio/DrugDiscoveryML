@@ -10,6 +10,15 @@ The import cleans the data and imports a subset from chembl_23 and eache one of 
 ### Assays
 There are testing issues for logP, Protein Binding and Aqueous solubility
 
+### Results so far
+Solubility 
+
+![alt text](https://github.com/joofio/DrugDiscoveryML/blob/master/images/aqsolubil.png "Aqueous Solubility results")
+
+LogP 
+
+![alt text](https://github.com/joofio/DrugDiscoveryML/blob/master/images/logp.png "LogP results")
+
 ### TODO
 * Clean code and presentability
 * Improve results
