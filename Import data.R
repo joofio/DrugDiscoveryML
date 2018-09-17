@@ -22,6 +22,7 @@ str(data)
 
 ToSelect<-data%>%group_by(assay_id,description)%>%summarise(count=n())%>%arrange(desc(count))
 
+#correction of data types
 data$standard_value <-as.numeric(as.character(data$standard_value))
 data$alogp <-as.numeric(as.character(data$alogp))
 data$hba <-as.numeric(as.character(data$hba))
@@ -53,10 +54,10 @@ test<-data%>%group_by(alogp)%>%summarise(count=n())%>%arrange(desc(count))#12323
 test<-data%>%group_by(standard_value)%>%summarise(count=n())%>%arrange(desc(count))#19850
 
 
-str(head(data))
+#str(head(data))
 
 ######deal with Nas
 
-data%>%distinct(alogp)%>%arrange(desc(alogp))
-colSums(is.na(data))
+#data%>%distinct(alogp)%>%arrange(desc(alogp))
+#colSums(is.na(data))
 
