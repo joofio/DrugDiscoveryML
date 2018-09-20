@@ -21,26 +21,22 @@ binding.data<-binding.data%>%filter(!is.na(full_mwt))
 binding.data<-binding.data%>%filter(!is.na(qed_weighted))
 
 
-#tentar todas as possiveis para avaliar impt
+#response
 binding.response<-binding.data$standard_value
-
-
-
-
-binding.predictors1<-binding.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,acd_logp,acd_logd,heavy_atoms,rtb,hba_lipinski,mw_monoisotopic, molecular_species, aromatic_rings,full_mwt) # 64%
-binding.predictors2<-binding.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,acd_logp,acd_logd,heavy_atoms,rtb,hba_lipinski,mw_monoisotopic, molecular_species, aromatic_rings,full_mwt,mw_monoisotopic,hbd_lipinski) # 64%
-binding.predictors3<-binding.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,acd_logp,acd_logd,heavy_atoms) # 57%
-binding.predictors4<-binding.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,acd_logp,acd_logd,qed_weighted) # 59%
-binding.predictors5<-binding.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,acd_logp,acd_logd,qed_weighted) # 61%
+####one of the 5
+binding.predictors<-binding.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,acd_logp,acd_logd,heavy_atoms,rtb,hba_lipinski,mw_monoisotopic, molecular_species, aromatic_rings,full_mwt) # 64%
+binding.predictors<-binding.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,acd_logp,acd_logd,heavy_atoms,rtb,hba_lipinski,mw_monoisotopic, molecular_species, aromatic_rings,full_mwt,mw_monoisotopic,hbd_lipinski) # 64%
+binding.predictors<-binding.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,acd_logp,acd_logd,heavy_atoms) # 57%
+binding.predictors<-binding.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,acd_logp,acd_logd,qed_weighted) # 59%
+binding.predictors<-binding.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,acd_logp,acd_logd,qed_weighted) # 61%
 
 ################################random forest################################
 ###para Cross validation
-binding.rf.mdl <-randomForest(binding.response,x=binding.predictors2)
+binding.rf.mdl <-randomForest(binding.response,x=binding.predictors)
 print(binding.rf.mdl)
 varImpPlot(binding.rf.mdl)
 importance(binding.rf.mdl)
-getTree(binding.rf.mdl, 3, labelVar=TRUE)#print de arvores
-
+getTree(binding.rf.mdl, 3, labelVar=TRUE)#print trees
 
 ###para test e train
 samp <- sample(nrow(binding.data), 0.6 * nrow(binding.data))
@@ -48,7 +44,6 @@ binding.train <- binding.data[samp, ]
 binding.test <- binding.data[-samp, ]
 
 binding.y.train<-binding.train$standard_value
-binding.x.train<-binding.train%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,acd_logp,acd_logd,qed_weighted) # 59%
 binding.x.train2<-binding.train%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,acd_logp,acd_logd,heavy_atoms,rtb,hba_lipinski,mw_monoisotopic, molecular_species, aromatic_rings,full_mwt,mw_monoisotopic,hbd_lipinski) # 64%
 
 binding.rf.mdl2 <-randomForest(binding.y.train,x=binding.x.train2,ntree = 1500,proximity = TRUE )
@@ -83,7 +78,7 @@ print(binding.rf.Prediction.tunedMAE)#1.04
 
 print(binding.rf.mdl.tuned)
 ######################################SVR#######################################
-
+binding.x.train<-binding.train%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,acd_logp,acd_logd,qed_weighted) # 59%
 binding.modelsvr<-svm(y=binding.y.train,x=binding.x.train)
 binding.predict.svr <-predict(binding.modelsvr,binding.x.train)
 
