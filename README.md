@@ -21,7 +21,7 @@ LogP
 
 Binding energy
 
-![alt text](https://github.com/joofio/DrugDiscoveryML/blob/master/images/Binding.png "Binding Energy results")
+![alt text](https://github.com/joofio/DrugDiscoveryML/blob/develop/images/Binding.png "Binding Energy results")
 
 ### TODO
 * Bioavailability
