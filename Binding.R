@@ -110,7 +110,7 @@ print(binding.svr.tunedresult)
 plot(binding.svr.tunedresult)
 
 binding.predict.svr.tuned <-predict(binding.svr.tunedresult$best.model,binding.x.train)
-binding.predict.svr.tuned <-predict(binding.svr.tunedresult$best.model,binding.test)
+#binding.predict.svr.tuned <-predict(binding.svr.tunedresult$best.model,binding.test)
 
 binding.modelsvr.error.tuned <- binding.train$standard_value-binding.predict.svr.tuned
 svrPrediction.tunedRMSE <-sqrt(mean(binding.modelsvr.error.tuned^2))
@@ -275,6 +275,11 @@ binding.accuracy$RMSE <- round(binding.accuracy$RMSE,2)
 binding.accuracy$MAE <- round(binding.accuracy$MAE,2) 
 
 print (binding.accuracy)
+grid.table(binding.accuracy)
+png("images/Binding.png", height = 40*nrow(binding.accuracy), width = 100*ncol(binding.accuracy))
+grid.table(binding.accuracy)
+dev.off()
+
 
 ######################################OUTROS#######################################
 

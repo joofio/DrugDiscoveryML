@@ -15,7 +15,7 @@ library(bnlearn)
 library(neuralnet)
 library(caret)
 library('RANN')
-
+library(gridExtra)
 
 #set seed
 set.seed(123)
