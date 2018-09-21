@@ -11,7 +11,7 @@ str(aqsolubil.data)
 
 aqsolubil.data<-aqsolubil.data%>%filter(published_units!='mg ml-1')#só nos nulls
 
-#remover NA
+#remove NA
 aqsolubil.data<-aqsolubil.data%>%filter(!is.na(mw_freebase))
 aqsolubil.data<-aqsolubil.data%>%filter(!is.na(psa))
 aqsolubil.data<-aqsolubil.data%>%filter(!is.na(acd_most_apka))
@@ -49,7 +49,7 @@ aqsolubil.pred<-predict(aqsolubil.rf.mdl,newdata=aqsolubil.test)
 plot(aqsolubil.pred,aqsolubil.test$standard_value)
 abline(0,1,col="blue")
 
-###MSE propriamente dito, e n previsto como no print rf
+###MSE formulation
 rf.PredictionRMSE<-mean((aqsolubil.pred-aqsolubil.test$standard_value)^2) #1.23 
 rf.PredictionMAE<-mean(abs(aqsolubil.pred-aqsolubil.test$standard_value))
 
@@ -85,7 +85,6 @@ print(aqsolubil.svr.tunedresult)
 
 #epsilon cost
 #0.1   32 
-#voltar a correr o tunedrsult com o seq de 0-0.1, com 0.01 e cost aumentar
 aqsolubil.svr.tunedresult<-tune(svm,train.x=aqsolubil.x.train,train.y=aqsolubil.y.train,ranges=list(epsilon=seq(0,0.2,0.01),cost=2^(2:7)),tunecontrol = tc)
 
 print(aqsolubil.svr.tunedresult)
@@ -139,8 +138,6 @@ aqsolubil.lin.reg <- lm(log(standard_value+11) ~ mw_freebase +  psa + acd_most_a
 
 # Inspect the model
 summary(aqsolubil.lin.reg)
-#r-squared 14% ou variancia explicada pelos preditores
-#PR(>|t|) é o p e por isso quanto menor mlhr (especialmente menor que 0,05)
 
 aqsolubil.pred.lin <- exp(predict(aqsolubil.lin.reg,aqsolubil.test))-11
 
@@ -176,18 +173,9 @@ aqsolubil.test.NN<-aqsolubil.scaled[-samp,]
 
 aqsolubil.n<-names(aqsolubil.train.NN)
 aqsolubil.f<-as.formula(paste("standard_value ~",paste(aqsolubil.n[!aqsolubil.n %in% "standard_value"],collapse = " + ")))
-#o y~ n funciona no neuralnet, dai se fazer a formular fora
 
 aqsolubil.NN.model<-neuralnet(aqsolubil.f,data=aqsolubil.train.NN,hidden=c(6,3),linear.output = TRUE)
 #algorithm did not converge in 1 of 1 repetition(s) within the stepmax 
-#aumentar o stepmax para dar tempo a NN de 
-
-#You can increase the stepmax and thereby giving it more time to converge.
-#The other option is to adjust the threshold parameter. 
-#By default its value is 0.01. Try increasing it to 0.1/0.5. 
-#If you change the lifesign to 'full' you can see the threshold values. 
-#Keep your threshold value lower than the one you see at the last step. 
-#Remember, higher the threshold, lower the accuracy of the model
 
 plot(aqsolubil.NN.model)
 
@@ -196,8 +184,6 @@ aqsolubil.pred.NN<-compute(aqsolubil.NN.model,aqsolubil.test.NN[,1:10])
 
 aqsolubil.pred.NN_<-aqsolubil.pred.NN$net.result*(max(aqsolubil.data.NN$standard_value)-min(aqsolubil.data.NN$standard_value))+min(aqsolubil.data.NN$standard_value)
 aqsolubil.pred.NN.response<-(aqsolubil.test.NN$standard_value)*(max(aqsolubil.data.NN$standard_value)-min(aqsolubil.data.NN$standard_value))+min(aqsolubil.data.NN$standard_value)
-
-
 
 aqsolubil.nn.RMSE<-sum((aqsolubil.pred.NN.response-aqsolubil.pred.NN_)^2)/nrow(aqsolubil.test.NN)
 print(aqsolubil.nn.RMSE)
@@ -247,7 +233,6 @@ aqsolubil.accuracy <- data.frame(Method = c("Random Forest","SVR","HC.Bayes","SV
                        MAE    = c(rf.PredictionMAE,aqsolubil.svrPredictionMAE,aqsolubil.hc.PredictionMAE,svrPrediction.tunedMAE,rf.Prediction.tunedMAE,aqsolubil.lin.reg.MAE,aqsolubil.nn.MAE)) 
 
 
-
 # Round the values and print the table
 aqsolubil.accuracy$RMSE <- round(aqsolubil.accuracy$RMSE,2)
 aqsolubil.accuracy$MAE <- round(aqsolubil.accuracy$MAE,2) 
@@ -255,7 +240,7 @@ aqsolubil.accuracy$MAE <- round(aqsolubil.accuracy$MAE,2)
 print (aqsolubil.accuracy)
 
 
-######################################OUTROS#######################################
+######################################OTHER#######################################
 
 ###rf Cross validation 2
 aqsolubil.rf.cv <- rf.crossValidation(aqsolubil.rf.mdl, aqsolubil.x.train, p=0.60, n=10, ntree=1500)# segunda versao cv

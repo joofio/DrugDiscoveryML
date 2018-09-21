@@ -14,13 +14,13 @@ bioavail.data<-bioavail.data%>%filter(standard_units!="NULL")
 #remover NA
 bioavail.data<-bioavail.data%>%filter(!is.na(mw_freebase))
 bioavail.data<-bioavail.data%>%filter(!is.na(psa))
-bioavail.data<-bioavail.data%>%filter(!is.na(acd_most_apka))#60
+bioavail.data<-bioavail.data%>%filter(!is.na(acd_most_apka))
 bioavail.data<-bioavail.data%>%filter(!is.na(hba))
 bioavail.data<-bioavail.data%>%filter(!is.na(hbd))
 bioavail.data<-bioavail.data%>%filter(!is.na(acd_logp))
 bioavail.data<-bioavail.data%>%filter(!is.na(acd_logd))
 bioavail.data<-bioavail.data%>%filter(!is.na(rtb))
-bioavail.data<-bioavail.data%>%filter(!is.na(acd_most_bpka))#outros 60
+bioavail.data<-bioavail.data%>%filter(!is.na(acd_most_bpka))
 bioavail.data<-bioavail.data%>%filter(!is.na(mw_monoisotopic))
 bioavail.data<-bioavail.data%>%filter(!is.na(aromatic_rings))
 bioavail.data<-bioavail.data%>%filter(!is.na(full_mwt))

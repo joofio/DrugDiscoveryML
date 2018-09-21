@@ -19,8 +19,13 @@ LogP
 
 ![alt text](https://github.com/joofio/DrugDiscoveryML/blob/master/images/logp.png "LogP results")
 
+Binding energy
+
+![alt text](https://github.com/joofio/DrugDiscoveryML/blob/develop/images/Binding.png "Binding Energy results")
+
 ### TODO
-* Clean code and presentability
+* Bioavailability
+* Clean code and readability
 * Improve results
 * Introduce DrugBank Information
 * ...

@@ -1,3 +1,9 @@
+source("http://bioconductor.org/biocLite.R")
+biocLite(c("graph","RBGL","Rgraphviz"))
+#install.packages(c("bnlearn","gRain","pROC","epitools"))
+
+#install.packages(c("RANN","caret","plyr", "dplyr", "rfUtilities", "party", "e1071", "bnlearn", "neuralnet", "randomForest", "ggplot2"))
+
 library(party)
 library(randomForest)
 library(plyr)
@@ -7,21 +13,22 @@ library(ggplot2)
 library (e1071)
 library(bnlearn)
 library(neuralnet)
-
-source("http://bioconductor.org/biocLite.R")
-biocLite(c("graph","RBGL","Rgraphviz"))
-install.packages(c("bnlearn","gRain","pROC","epitools"))
+library(caret)
+library('RANN')
+library(gridExtra)
 
 #set seed
 set.seed(123)
 
 #read csv origin Chembl23
-data<-read.csv(file="/product_adme.csv")
+data<-read.csv(file="product_adme.csv")
 
-str(data)
+#evaluate data
+#str(data)
 
-ToSelect<-data%>%group_by(assay_id,description)%>%summarise(count=n())%>%arrange(desc(count))
+#data%>%group_by(assay_id,description)%>%summarise(count=n())%>%arrange(desc(count))
 
+#correction of data types
 data$standard_value <-as.numeric(as.character(data$standard_value))
 data$alogp <-as.numeric(as.character(data$alogp))
 data$hba <-as.numeric(as.character(data$hba))
@@ -49,14 +56,12 @@ data$description <-as.character(data$description)
 
 
 
-test<-data%>%group_by(alogp)%>%summarise(count=n())%>%arrange(desc(count))#12323
-test<-data%>%group_by(standard_value)%>%summarise(count=n())%>%arrange(desc(count))#19850
-
-
-str(head(data))
+#str(head(data))
+#data%>%group_by(alogp)%>%summarise(count=n())%>%arrange(desc(count))#12323
+#data%>%group_by(standard_value)%>%summarise(count=n())%>%arrange(desc(count))#19850
 
 ######deal with Nas
 
-data%>%distinct(alogp)%>%arrange(desc(alogp))
-colSums(is.na(data))
+#data%>%distinct(alogp)%>%arrange(desc(alogp))
+#colSums(is.na(data))
 
