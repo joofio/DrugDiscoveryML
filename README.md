@@ -5,7 +5,8 @@ messing around with drug discovery and machine-learning
 The objective of this repository is to address pharmacokinetics issues with drug discovery and if/how can machine-learning help on this issue while learning myself. Any input is welcomed.
 
 ### How to
-The import cleans the data and imports a subset from chembl_23 and eache one of the assays works from there 
+The import cleans the data and imports a subset from chembl_23 and eache one of the assays works from there.
+The dataset used is available [here](https://www.dropbox.com/s/jmhxpdn9m3izt02/product_adme.csv?dl=0).
 
 ### Assays
 There are testing issues for logP, Protein Binding and Aqueous solubility
