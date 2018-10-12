@@ -34,8 +34,8 @@ The median is 11.2
 * Bioavailability
 * Clean code and readability
 * Improve results
-** Scale and normalize
-** Better feature selection
-** More methods
+  * Scale and normalize
+  * Better feature selection
+  * More methods
 * Introduce DrugBank Information
 * ...
