@@ -21,12 +21,7 @@ library(gridExtra)
 set.seed(123)
 
 #read csv origin Chembl23
-data<-read.csv(file="product_adme.csv")
-
-#evaluate data
-#str(data)
-
-#data%>%group_by(assay_id,description)%>%summarise(count=n())%>%arrange(desc(count))
+data<-read.csv(file="~/dropbox/product_adme.csv")
 
 #correction of data types
 data$standard_value <-as.numeric(as.character(data$standard_value))
@@ -55,13 +50,4 @@ data$standard_units <-as.character(data$standard_units)
 data$description <-as.character(data$description)
 
 
-
-#str(head(data))
-#data%>%group_by(alogp)%>%summarise(count=n())%>%arrange(desc(count))#12323
-#data%>%group_by(standard_value)%>%summarise(count=n())%>%arrange(desc(count))#19850
-
-######deal with Nas
-
-#data%>%distinct(alogp)%>%arrange(desc(alogp))
-#colSums(is.na(data))
 

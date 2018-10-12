@@ -2,13 +2,6 @@ set.seed(123)
 
 #Aqueous solubility
 aqsolubil.data<-data%>%filter(description=='Aqueous solubility')
-
-#variable to measure
-aqsolubil.data%>%group_by(standard_units)%>%summarise(count=n())%>%arrange(desc(count))
-aqsolubil.data%>%group_by(published_units)%>%summarise(count=n())%>%arrange(desc(published_units))
-
-str(aqsolubil.data)
-
 aqsolubil.data<-aqsolubil.data%>%filter(published_units!='mg ml-1')#só nos nulls
 
 #remove NA
@@ -25,7 +18,6 @@ aqsolubil.data<-aqsolubil.data%>%filter(!is.na(mw_monoisotopic))
 aqsolubil.data<-aqsolubil.data%>%filter(!is.na(aromatic_rings))
 aqsolubil.data<-aqsolubil.data%>%filter(!is.na(full_mwt))
 
-aqsolubil.data<-aqsolubil.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,rtb,mw_monoisotopic, aromatic_rings,full_mwt,standard_value) # 76%
 aqsolubil.data<-aqsolubil.data[!duplicated(aqsolubil.data),]
 
 ###training
@@ -34,8 +26,7 @@ samp <- sample(nrow(aqsolubil.data), 0.6 * nrow(aqsolubil.data))
 aqsolubil.train <- aqsolubil.data[samp, ]#744
 aqsolubil.test <- aqsolubil.data[-samp, ]#497
 
-aqsolubil.x.train<-aqsolubil.train%>%select(full_mwt,mw_freebase,psa,acd_most_apka,
-                                            hba,hbd,acd_logp,acd_logd,rtb,acd_most_bpka,mw_monoisotopic,aromatic_rings) # 68%
+aqsolubil.x.train<-aqsolubil.train%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,rtb,mw_monoisotopic, aromatic_rings,full_mwt) # 68%
 aqsolubil.y.train<-aqsolubil.train$standard_value
 
 ################################random forest################################
@@ -64,6 +55,8 @@ rf.Prediction.tunedMAE<-mean(abs(aqsolubil.pred.tuned-aqsolubil.test$standard_va
 print(rf.Prediction.tunedMAE)#0.59
 
 ######################################SVR#######################################
+
+aqsolubil.x.train<-aqsolubil.train%>%select(full_mwt,mw_freebase,psa,acd_most_apka,hba,hbd,acd_logp,acd_logd,rtb,acd_most_bpka,mw_monoisotopic,aromatic_rings) # 68%
 
 aqsolubil.modelsvr<-svm(y=aqsolubil.y.train,x=aqsolubil.x.train)
 aqsolubil.predict.svr <-predict(aqsolubil.modelsvr,aqsolubil.x.train)
