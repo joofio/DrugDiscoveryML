@@ -192,13 +192,34 @@ print (logp.hc.PredictionMAE)#1.605
 
 cbind(predicted=logp.hc.predict,actual=logp.test.net$standard_value)
 
-###########################Multiple Linear regression##############################
-plot(log(logp.train$standard_value+1))
-feature.data<-feature.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,acd_logp,acd_logd,heavy_atoms,rtb,hba_lipinski,mw_monoisotopic, aromatic_rings,full_mwt,mw_monoisotopic,hbd_lipinski, standard_value) 
+###########################multivariate Linear regression##############################
+plot(log(logp.train$standard_value))#"test"
+logp.data<-data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,acd_logp,acd_logd,heavy_atoms,rtb,hba_lipinski,mw_monoisotopic, aromatic_rings,full_mwt,mw_monoisotopic,hbd_lipinski, standard_value) 
+logp.data<-data%>%filter(assay_id==16590|assay_id==20401)#73
+
+logp.data<-logp.data%>%filter(!is.na(mw_freebase))
+logp.data<-logp.data%>%filter(!is.na(psa))
+logp.data<-logp.data%>%filter(!is.na(acd_most_apka))
+logp.data<-logp.data%>%filter(!is.na(acd_most_bpka))
+logp.data<-logp.data%>%filter(!is.na(hba))
+logp.data<-logp.data%>%filter(!is.na(hbd))
+logp.data<-logp.data%>%filter(!is.na(acd_logp))
+logp.data<-logp.data%>%filter(!is.na(acd_logd))
+logp.data<-logp.data%>%filter(!is.na(rtb))
+logp.data<-logp.data%>%filter(!is.na(heavy_atoms))
+logp.data<-logp.data%>%filter(!is.na(hba_lipinski))
+logp.data<-logp.data%>%filter(!is.na(hbd_lipinski))
+logp.data<-logp.data%>%filter(!is.na(mw_monoisotopic))
+logp.data<-logp.data%>%filter(!is.na(aromatic_rings))
+logp.data<-logp.data%>%filter(!is.na(full_mwt))
+
+logp.data<-logp.data%>%filter(!is.na(standard_value))
+samp <- sample(nrow(logp.data), 0.6 * nrow(logp.data))
+logp.train <- logp.data[samp, ]#744
+logp.test <- logp.data[-samp, ]#497
 
 logp.lin.reg <- lm(log(standard_value) ~ mw_freebase +  psa + acd_most_apka + acd_most_bpka + hba +
                           hbd + rtb+acd_logp+acd_logd+heavy_atoms+hba_lipinski+mw_monoisotopic+aromatic_rings+full_mwt+mw_monoisotopic+hbd_lipinski, data = logp.train )
-help(lm)
 
 # Inspect the model
 summary(logp.lin.reg)
@@ -213,11 +234,28 @@ logp.lin.reg.MAE <- mean(abs(logp.pred.lin-logp.test$standard_value))
 print(logp.lin.reg.MAE)
 
 ################################# Neural Networks ###################################
+logp.data<-data%>%filter(assay_id==16590|assay_id==20401)#73
 
+#remove NA
+logp.data<-logp.data%>%filter(!is.na(mw_freebase))
+logp.data<-logp.data%>%filter(!is.na(psa))
+logp.data<-logp.data%>%filter(!is.na(acd_most_apka))
+logp.data<-logp.data%>%filter(!is.na(hba))
+logp.data<-logp.data%>%filter(!is.na(hbd))
+logp.data<-logp.data%>%filter(!is.na(acd_logp))
+logp.data<-logp.data%>%filter(!is.na(acd_logd))
+logp.data<-logp.data%>%filter(!is.na(rtb))
+logp.data<-logp.data%>%filter(!is.na(acd_most_bpka))
+logp.data<-logp.data%>%filter(!is.na(mw_monoisotopic))
+logp.data<-logp.data%>%filter(!is.na(aromatic_rings))
+logp.data<-logp.data%>%filter(!is.na(full_mwt))
+
+logp.data<-logp.data%>%filter(!is.na(standard_value))
 logp.data.NN<-logp.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,rtb,mw_monoisotopic, aromatic_rings,full_mwt,standard_value) # 76%
 
 #check if no na is available
 apply(logp.data.NN,2,function(x) sum(is.na(x)))#fun?
+
 
 logp.lm.fit<-glm(standard_value~.,data=logp.train.net)
 
@@ -233,7 +271,6 @@ logp.maxs<-apply(logp.data.NN,2,max)
 logp.mins<-apply(logp.data.NN,2,min)
 
 logp.scaled<-as.data.frame(scale(logp.data.NN,center=logp.mins,scale=logp.maxs-logp.mins))
-help(scale)
 
 logp.train.NN<-logp.scaled[samp,]
 logp.test.NN<-logp.scaled[-samp,]
