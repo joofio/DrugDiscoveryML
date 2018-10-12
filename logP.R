@@ -1,13 +1,7 @@
 
 set.seed(123)
-str(data)
-logp.data<-data%>%filter(assay_id==16590|assay_id==20401)#73
-logp.data<-data%>%filter(description=='Partition coefficient (logP)')#44
-logp.data<-data%>%filter(grepl('(logP)',description))#phew data
-####estudo da variavel a medir
-logp.data%>%group_by(standard_value)%>%summarise(count=n())%>%arrange(desc(count))#duplicados
-logp.data%>%group_by(molregno)%>%summarise(count=n())%>%arrange(desc(count))
 
+logp.data<-data%>%filter(assay_id==16590|assay_id==20401)#73
 
 #remove NA
 logp.data<-logp.data%>%filter(!is.na(mw_freebase))
@@ -318,6 +312,10 @@ logp.accuracy$RMSE <- round(logp.accuracy$RMSE,2)
 logp.accuracy$MAE <- round(logp.accuracy$MAE,2) 
 
 print (logp.accuracy)
+grid.table(logp.accuracy)
+png("images/logp.png", height = 40*nrow(logp.accuracy), width = 100*ncol(logp.accuracy))
+grid.table(logp.accuracy)
+dev.off()
 
 ################################### Cross Validation ##########################################
 

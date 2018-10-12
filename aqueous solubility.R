@@ -231,9 +231,20 @@ aqsolubil.accuracy$RMSE <- round(aqsolubil.accuracy$RMSE,2)
 aqsolubil.accuracy$MAE <- round(aqsolubil.accuracy$MAE,2) 
 
 print (aqsolubil.accuracy)
+grid.table(aqsolubil.accuracy)
+png("images/aqsolubil.png", height = 40*nrow(aqsolubil.accuracy), width = 100*ncol(aqsolubil.accuracy))
+grid.table(aqsolubil.accuracy)
+dev.off()
 
 
-######################################OTHER#######################################
+
+
+
+
+######################################OTHER#######################################WIP
+
+
+
 
 ###rf Cross validation 2
 aqsolubil.rf.cv <- rf.crossValidation(aqsolubil.rf.mdl, aqsolubil.x.train, p=0.60, n=10, ntree=1500)# segunda versao cv
@@ -246,8 +257,8 @@ print(aqsolubil.rf.cv.tuned)
 
 ############CV TOTAL ##########
 aqsolubil.accuracy.cv<-data.frame(Method=c("Random Forest CV10","Random Forest Tuned CV10","Neural Networks CV20","SVR Tuned CV10")
-                             ,RMSE=c(mean(aqsolubil.rf.cv$y.rmse),mean(aqsolubil.rf.cv.tuned$y.rmse),mean(aqsolubil.cv.NN.error),svrPrediction.tuned.RMSE)
-                             ,MAE=c(mean(aqsolubil.rf.cv$y.mae),mean(aqsolubil.rf.cv.tuned$y.mae),0,svrPrediction.tuned.MAE))
+                             ,RMSE=c(mean(aqsolubil.rf.cv$y.rmse),mean(aqsolubil.rf.cv.tuned$y.rmse),mean(aqsolubil.cv.NN.error),svrPrediction.tunedRMSE)
+                             ,MAE=c(mean(aqsolubil.rf.cv$y.mae),mean(aqsolubil.rf.cv.tuned$y.mae),0,svrPrediction.tunedMAE))
 
 aqsolubil.accuracy.cv$RMSE <- round(aqsolubil.accuracy.cv$RMSE,2)
 aqsolubil.accuracy.cv$MAE <- round(aqsolubil.accuracy.cv$MAE,2) 

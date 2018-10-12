@@ -21,7 +21,7 @@ library(gridExtra)
 set.seed(123)
 
 #read csv origin Chembl23
-data<-read.csv(file="~/dropbox/product_adme.csv")
+data<-read.csv(file="product_adme.csv")
 
 #correction of data types
 data$standard_value <-as.numeric(as.character(data$standard_value))
