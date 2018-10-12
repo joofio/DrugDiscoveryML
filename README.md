@@ -14,11 +14,11 @@ There are testing issues for logP, Protein Binding and Aqueous solubility
 ### Results so far
 Solubility 
 
-![alt text](https://github.com/joofio/DrugDiscoveryML/blob/master/images/aqsolubil.png "Aqueous Solubility results")
+![alt text](https://github.com/joofio/DrugDiscoveryML/blob/develop/images/aqsolubil.png "Aqueous Solubility results")
 
 LogP 
 
-![alt text](https://github.com/joofio/DrugDiscoveryML/blob/master/images/logp.png "LogP results")
+![alt text](https://github.com/joofio/DrugDiscoveryML/blob/develop/images/logp.png "LogP results")
 
 Binding energy
 
