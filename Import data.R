@@ -1,9 +1,15 @@
-source("http://bioconductor.org/biocLite.R")
-biocLite(c("graph","RBGL","Rgraphviz"))
+Install packages needed and do not come from source
+```{r}
 #install.packages(c("bnlearn","gRain","pROC","epitools"))
 
 #install.packages(c("RANN","caret","plyr", "dplyr", "rfUtilities", "party", "e1071", "bnlearn", "neuralnet", "randomForest", "ggplot2"))
+```
 
+activating needed packages
+```{r}
+source("http://bioconductor.org/biocLite.R")
+biocLite(c("graph","RBGL","Rgraphviz"))
+library(tidyr)
 library(party)
 library(randomForest)
 library(plyr)
@@ -16,14 +22,17 @@ library(neuralnet)
 library(caret)
 library('RANN')
 library(gridExtra)
+```
 
+```{r}
 #set seed
 set.seed(123)
+```
 
+```{r}
 #read csv origin Chembl23
 data<-read.csv(file="product_adme.csv")
-
-#correction of data types
+#numeric
 data$standard_value <-as.numeric(as.character(data$standard_value))
 data$alogp <-as.numeric(as.character(data$alogp))
 data$hba <-as.numeric(as.character(data$hba))
@@ -46,8 +55,14 @@ data$aromatic_rings <-as.numeric(as.character(data$aromatic_rings))
 data$mw_monoisotopic <-as.numeric(as.character(data$mw_monoisotopic))
 data$hbd_lipinski <-as.numeric(as.character(data$hbd_lipinski))
 data$published_value <-as.numeric(as.character(data$published_value))
+#character
 data$standard_units <-as.character(data$standard_units)
 data$description <-as.character(data$description)
+```
 
+```{r}
+data<-data%>%select(-md,-cp,-molregno.1,-cr,-molregno.2,-molregno.3,-doc_id.1,-doc_id.2,-aa,-src_id.1,-chembl_id.1,-assay_id.1,-record_id.1)
+show(data)
 
+```
 

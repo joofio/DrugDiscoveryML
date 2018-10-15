@@ -1,51 +1,59 @@
-#Bioavailability
-#very phew data 
-
+# Bioavailability
+```{r}
 set.seed(123)
+```
 
 #Aqueous solubility
+```{r}
+#1
 bioavail.data<-data%>%filter(description=='Bioavailability')
-bioavail.data<-data%>%filter(grepl('(Bioavailability)',description))#pouco
-
-bioavail.data%>%group_by(description)%>%summarise(count=n())%>%arrange(desc(count))
+#2
+bioavail.data<-data%>%filter(grepl('(Bioavailability)',description))
 
 bioavail.data<-bioavail.data%>%filter(standard_units!="NULL")
 
-#remover NA
-bioavail.data<-bioavail.data%>%filter(!is.na(mw_freebase))
-bioavail.data<-bioavail.data%>%filter(!is.na(psa))
-bioavail.data<-bioavail.data%>%filter(!is.na(acd_most_apka))
-bioavail.data<-bioavail.data%>%filter(!is.na(hba))
-bioavail.data<-bioavail.data%>%filter(!is.na(hbd))
-bioavail.data<-bioavail.data%>%filter(!is.na(acd_logp))
-bioavail.data<-bioavail.data%>%filter(!is.na(acd_logd))
-bioavail.data<-bioavail.data%>%filter(!is.na(rtb))
-bioavail.data<-bioavail.data%>%filter(!is.na(acd_most_bpka))
-bioavail.data<-bioavail.data%>%filter(!is.na(mw_monoisotopic))
-bioavail.data<-bioavail.data%>%filter(!is.na(aromatic_rings))
-bioavail.data<-bioavail.data%>%filter(!is.na(full_mwt))
+```
 
-bioavail.data<-bioavail.data%>%filter(!is.na(standard_value))
+```{r}
+bioavail.data%>%group_by(description)%>%summarise(count=n())%>%arrange(desc(count))
+str(bioavail.data)
+
+hist(bioavail.data$standard_value)
+var(bioavail.data$standard_value)
+mean(bioavail.data$standard_value)
+median(bioavail.data$standard_value)
+
+```
 
 
-samp <- sample(nrow(bioavail.data), 0.7 * nrow(bioavail.data))
-bioavail.train <- bioavail.data[samp, ]#744
-bioavail.test <- bioavail.data[-samp, ]#497
+# Random Forest
+```{r}
 
-bioavail.x.train<-bioavail.train%>%select(full_mwt,mw_freebase,psa,acd_most_apka,hba,hbd,acd_logp,acd_logd,rtb,acd_most_bpka,mw_monoisotopic,aromatic_rings) # 64%
-bioavail.y.train<-bioavail.train$published_value
+bioavail.rf.data<-bioavail.data%>%select(full_mwt,mw_freebase,psa,acd_most_apka,hba,hbd,acd_logp,acd_logd,rtb,acd_most_bpka,mw_monoisotopic,aromatic_rings, standard_value) 
+bioavail.rf.data<-drop_na(bioavail.rf.data)
 
-str(bioavail.y.train)
+samp <- sample(nrow(bioavail.rf.data), 0.7 * nrow(bioavail.rf.data))
+bioavail.rf.train <- bioavail.rf.data[samp, ]#744
+bioavail.rf.test <- bioavail.rf.data[-samp, ]#497
 
-bioavail.rf.mdl <-randomForest(bioavail.y.train,x=bioavail.x.train,type=1)
+
+bioavail.x.rf.train<-bioavail.rf.train%>%select(-standard_value) # 68%
+bioavail.y.rf.train<-bioavail.rf.train$standard_value
+```
+
+```{r}
+bioavail.rf.mdl <-randomForest(bioavail.y.rf.train,x=bioavail.x.rf.train,type=1)
 print(bioavail.rf.mdl)
 varImpPlot(bioavail.rf.mdl)
 importance(bioavail.rf.mdl, scale = TRUE)
 
-bioavail.pred<-predict(bioavail.rf.mdl,newdata=bioavail.test)
+bioavail.pred<-predict(bioavail.rf.mdl,newdata=bioavail.rf.test)
 
-plot(bioavail.pred,bioavail.test$standard_value)
+plot(bioavail.pred,bioavail.rf.test$standard_value)
 abline(0,1,col="blue")
 ###MSE propriamente dito, e n previsto como no print rf
-mean((bioavail.pred-bioavail.test$standard_value)^2) #500+
+mean((bioavail.pred-bioavail.rf.test$standard_value)^2) #500+
+```
+
+
 

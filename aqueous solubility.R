@@ -1,161 +1,260 @@
+```{r creating data file}
 set.seed(123)
-
 #Aqueous solubility
 aqsolubil.data<-data%>%filter(description=='Aqueous solubility')
 aqsolubil.data<-aqsolubil.data%>%filter(published_units!='mg ml-1')#só nos nulls
+```
 
-#remove NA
-aqsolubil.data<-aqsolubil.data%>%filter(!is.na(mw_freebase))
-aqsolubil.data<-aqsolubil.data%>%filter(!is.na(psa))
-aqsolubil.data<-aqsolubil.data%>%filter(!is.na(acd_most_apka))
-aqsolubil.data<-aqsolubil.data%>%filter(!is.na(hba))
-aqsolubil.data<-aqsolubil.data%>%filter(!is.na(hbd))
-aqsolubil.data<-aqsolubil.data%>%filter(!is.na(acd_logp))
-aqsolubil.data<-aqsolubil.data%>%filter(!is.na(acd_logd))
-aqsolubil.data<-aqsolubil.data%>%filter(!is.na(rtb))
-aqsolubil.data<-aqsolubil.data%>%filter(!is.na(acd_most_bpka))
-aqsolubil.data<-aqsolubil.data%>%filter(!is.na(mw_monoisotopic))
-aqsolubil.data<-aqsolubil.data%>%filter(!is.na(aromatic_rings))
-aqsolubil.data<-aqsolubil.data%>%filter(!is.na(full_mwt))
+# checking value to predict 
+```{r}
+hist(aqsolubil.data$standard_value)
+var(aqsolubil.data$standard_value)
+mean(aqsolubil.data$standard_value)
+median(aqsolubil.data$standard_value)
+```
 
-aqsolubil.data<-aqsolubil.data[!duplicated(aqsolubil.data),]
+#Random Forest
 
-###training
+```{r selecting data}
+aqsolubil.rf.data<-aqsolubil.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,rtb,mw_monoisotopic, aromatic_rings,full_mwt,standard_value) # 68%
+aqsolubil.rf.data<-drop_na(aqsolubil.rf.data)
 
-samp <- sample(nrow(aqsolubil.data), 0.6 * nrow(aqsolubil.data))
-aqsolubil.train <- aqsolubil.data[samp, ]#744
-aqsolubil.test <- aqsolubil.data[-samp, ]#497
+aqsolubil.rf.data<-aqsolubil.rf.data[!duplicated(aqsolubil.rf.data),]
 
-aqsolubil.x.train<-aqsolubil.train%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,rtb,mw_monoisotopic, aromatic_rings,full_mwt) # 68%
-aqsolubil.y.train<-aqsolubil.train$standard_value
+samp <- sample(nrow(aqsolubil.rf.data), 0.6 * nrow(aqsolubil.rf.data))
+aqsolubil.rf.train <- aqsolubil.rf.data[samp, ]#744
+aqsolubil.rf.test <- aqsolubil.rf.data[-samp, ]#497
 
-################################random forest################################
-aqsolubil.rf.mdl <-randomForest(aqsolubil.y.train,x=aqsolubil.x.train,mtry = 7,ntree = 1500)
+
+aqsolubil.x.rf.train<-aqsolubil.rf.train%>%select(-standard_value) # 68%
+aqsolubil.y.rf.train<-aqsolubil.rf.train$standard_value
+```
+
+
+```{r creating model}
+aqsolubil.rf.mdl <-randomForest(aqsolubil.y.rf.train,x=aqsolubil.x.rf.train,mtry = 3,ntree = 1500)
 print(aqsolubil.rf.mdl)
 varImpPlot(aqsolubil.rf.mdl)
 importance(aqsolubil.rf.mdl)
+aqsolubil.rf.pred<-predict(aqsolubil.rf.mdl,newdata=aqsolubil.rf.test)
+```
 
 
-aqsolubil.pred<-predict(aqsolubil.rf.mdl,newdata=aqsolubil.test)
-plot(aqsolubil.pred,aqsolubil.test$standard_value)
+### plot results and prediction evaluation
+```{r}
+plot(aqsolubil.rf.pred,aqsolubil.rf.test$standard_value)
 abline(0,1,col="blue")
+mean(aqsolubil.rf.pred)
+median(aqsolubil.rf.pred)
+hist(aqsolubil.rf.pred)
+var(aqsolubil.rf.pred)
+```
 
-###MSE formulation
-rf.PredictionRMSE<-mean((aqsolubil.pred-aqsolubil.test$standard_value)^2) #1.23 
-rf.PredictionMAE<-mean(abs(aqsolubil.pred-aqsolubil.test$standard_value))
+### MSE and MAE formulation
+```{r}
+rf.PredictionRMSE<-mean((aqsolubil.rf.pred-aqsolubil.rf.test$standard_value)^2) #1.23
+print(rf.PredictionRMSE)
+rf.PredictionMAE<-mean(abs(aqsolubil.rf.pred-aqsolubil.rf.test$standard_value))
+print(rf.PredictionMAE)
 
-#tuning rf
-aqsolubil.rf.mdl.tuned<-tuneRF(aqsolubil.x.train,aqsolubil.y.train,mtryStart = 3,ntreeTry = 1500, improve = 0.01,doBest = TRUE)
-aqsolubil.pred.tuned<-predict(aqsolubil.rf.mdl.tuned,aqsolubil.test)
-plot(aqsolubil.pred.tuned,aqsolubil.test$standard_value)
+```
+
+
+## tuning rf
+```{r}
+aqsolubil.rf.mdl.tuned<-tuneRF(aqsolubil.x.rf.train,aqsolubil.y.rf.train,mtryStart = 3,ntreeTry = 1500, improve = 0.01,doBest = TRUE)
+
+aqsolubil.pred.tuned<-predict(aqsolubil.rf.mdl.tuned,aqsolubil.rf.test)
+
+plot(aqsolubil.pred.tuned,aqsolubil.rf.test$standard_value)
 abline(0,1, col="blue")
-rf.Prediction.tunedRMSE<-mean((aqsolubil.pred.tuned-aqsolubil.test$standard_value)^2) 
+
+rf.Prediction.tunedRMSE<-mean((aqsolubil.pred.tuned-aqsolubil.rf.test$standard_value)^2) 
 print(rf.Prediction.tunedRMSE)#1.19
-rf.Prediction.tunedMAE<-mean(abs(aqsolubil.pred.tuned-aqsolubil.test$standard_value))
+
+rf.Prediction.tunedMAE<-mean(abs(aqsolubil.pred.tuned-aqsolubil.rf.test$standard_value))
 print(rf.Prediction.tunedMAE)#0.59
 
-######################################SVR#######################################
+mean(aqsolubil.pred.tuned)
+median(aqsolubil.pred.tuned)
+hist(aqsolubil.pred.tuned)
+```
 
-aqsolubil.x.train<-aqsolubil.train%>%select(full_mwt,mw_freebase,psa,acd_most_apka,hba,hbd,acd_logp,acd_logd,rtb,acd_most_bpka,mw_monoisotopic,aromatic_rings) # 68%
 
-aqsolubil.modelsvr<-svm(y=aqsolubil.y.train,x=aqsolubil.x.train)
-aqsolubil.predict.svr <-predict(aqsolubil.modelsvr,aqsolubil.x.train)
+# SVR
+
+```{r selecting data}
+aqsolubil.svr.data<-aqsolubil.data%>%select(full_mwt,mw_freebase,psa,acd_most_apka,hba,hbd,acd_logp,acd_logd,rtb,acd_most_bpka,mw_monoisotopic,aromatic_rings,standard_value) # 68%
+aqsolubil.svr.data<-drop_na(aqsolubil.svr.data)
+
+aqsolubil.svr.data<-aqsolubil.svr.data[!duplicated(aqsolubil.svr.data),]
+
+samp <- sample(nrow(aqsolubil.svr.data), 0.6 * nrow(aqsolubil.svr.data))
+aqsolubil.svr.train <- aqsolubil.svr.data[samp, ]#744
+aqsolubil.svr.test <- aqsolubil.svr.data[-samp, ]#497
+
+
+aqsolubil.x.svr.train<-aqsolubil.svr.train%>%select(-standard_value) # 68%
+aqsolubil.y.svr.train<-aqsolubil.svr.train$standard_value
+```
+
+## 
+```{r Creating model}
+aqsolubil.modelsvr<-svm(y=aqsolubil.y.svr.train,x=aqsolubil.x.svr.train)
+aqsolubil.predict.svr <-predict(aqsolubil.modelsvr,aqsolubil.x.svr.train)
 
 print(aqsolubil.modelsvr)
 
-plot(aqsolubil.train$standard_value)
+plot(aqsolubil.svr.train$standard_value)
 points(aqsolubil.predict.svr,col="Green")
-aqsolubil.modelsvr.error <- aqsolubil.train$standard_value-aqsolubil.predict.svr
+```
+
+
+```{r evaluation}
+aqsolubil.modelsvr.error <- aqsolubil.svr.train$standard_value-aqsolubil.predict.svr
 aqsolubil.svrPredictionRMSE <-sqrt(mean(aqsolubil.modelsvr.error^2))
 print (aqsolubil.svrPredictionRMSE)#1.14
-aqsolubil.svrPredictionMAE<-mean(abs(aqsolubil.predict.svr-aqsolubil.train$standard_value))
+aqsolubil.svrPredictionMAE<-mean(abs(aqsolubil.predict.svr-aqsolubil.svr.train$standard_value))
+print (aqsolubil.svrPredictionMAE)
 
+```
 
+```{r tuning SVR}
 tc <- tune.control(cross = 10)
+```
+
+
+```{r first choice}
 
 aqsolubil.svr.tunedresult<-tune(svm,train.x=aqsolubil.x.train,train.y=aqsolubil.y.train,ranges=list(epsilon=seq(0,1,0.1),cost=2^(2:9)))
 print(aqsolubil.svr.tunedresult)
+plot(aqsolubil.svr.tunedresult)
+```
 
-#epsilon cost
-#0.1   32 
-aqsolubil.svr.tunedresult<-tune(svm,train.x=aqsolubil.x.train,train.y=aqsolubil.y.train,ranges=list(epsilon=seq(0,0.2,0.01),cost=2^(2:7)),tunecontrol = tc)
 
+```{r alternative}
+aqsolubil.svr.tunedresult<-tune(svm,train.x=aqsolubil.x.svr.train,train.y=aqsolubil.y.svr.train,ranges=list(epsilon=seq(0,0.2,0.01),cost=2^(2:7)),tunecontrol = tc)
 print(aqsolubil.svr.tunedresult)
 plot(aqsolubil.svr.tunedresult)
+```
 
-aqsolubil.predict.svr.tuned <-predict(aqsolubil.svr.tunedresult$best.model,aqsolubil.x.train)
-aqsolubil.modelsvr.error.tuned <- aqsolubil.train$standard_value-aqsolubil.predict.svr.tuned
+
+```{r tuning evaluation}
+aqsolubil.predict.svr.tuned <-predict(aqsolubil.svr.tunedresult$best.model,aqsolubil.x.svr.train)
+aqsolubil.modelsvr.error.tuned <- aqsolubil.svr.train$standard_value-aqsolubil.predict.svr.tuned
 svrPrediction.tunedRMSE <-sqrt(mean(aqsolubil.modelsvr.error.tuned^2))
 print (svrPrediction.tunedRMSE)#0.62
-svrPrediction.tunedMAE <- mean(abs(aqsolubil.predict.svr.tuned-aqsolubil.train$standard_value))
+svrPrediction.tunedMAE <- mean(abs(aqsolubil.predict.svr.tuned-aqsolubil.svr.train$standard_value))
 print(svrPrediction.tunedMAE)
+```
 
+# BAYES
 
-################################BAYES############################################
-samp <- sample(nrow(aqsolubil.data), 0.6 * nrow(aqsolubil.data))
-aqsolubil.train <- aqsolubil.data[samp, ]#744
-aqsolubil.test <- aqsolubil.data[-samp, ]#497
+## selecting data
+```{r}
+aqsolubil.bayes.data<-aqsolubil.data%>%select(full_mwt,mw_freebase,psa,acd_most_apka,hba,hbd,acd_logp,acd_logd,rtb,acd_most_bpka,mw_monoisotopic,aromatic_rings,standard_value) 
+aqsolubil.bayes.data<-drop_na(aqsolubil.bayes.data)
 
-aqsolubil.train.net<-aqsolubil.train%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,rtb,mw_monoisotopic, aromatic_rings,full_mwt,standard_value) # 76%
-aqsolubil.test.net<-aqsolubil.test%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,rtb,mw_monoisotopic, aromatic_rings,full_mwt,standard_value) # 76%
+aqsolubil.bayes.data<-aqsolubil.bayes.data[!duplicated(aqsolubil.bayes.data),]
 
+samp <- sample(nrow(aqsolubil.bayes.data), 0.6 * nrow(aqsolubil.bayes.data))
+aqsolubil.bayes.train <- aqsolubil.bayes.data[samp, ]#744
+aqsolubil.bayes.test <- aqsolubil.bayes.data[-samp, ]#497
 
-aqsolubil.hc.net <- hc(aqsolubil.train.net, debug=TRUE)#hill climbing
+```
 
-# plot network
-plot(aqsolubil.hc.net)
+## create model
+```{r}
+aqsolubil.hc.bayes <- hc(aqsolubil.bayes.train, debug=TRUE)#hill climbing
+```
 
-# fit the network with the data itself
-aqsolubil.hc.fit <- bn.fit(aqsolubil.hc.net, aqsolubil.train.net)
+## plot network
+```{r}
+plot(aqsolubil.hc.bayes)
+```
 
-aqsolubil.hc.predict <-predict(aqsolubil.hc.fit,"standard_value",aqsolubil.test.net)
+## fit the network with the data itself
+```{r}
+aqsolubil.hc.fit <- bn.fit(aqsolubil.hc.bayes, aqsolubil.bayes.train)
+
+aqsolubil.hc.predict <-predict(aqsolubil.hc.fit,"standard_value",aqsolubil.bayes.test)
 
 plot(aqsolubil.hc.predict)
-points(aqsolubil.test.net$standard_value,col="Red")
+points(aqsolubil.bayes.test$standard_value,col="Red")
 
-#error
-aqsolubil.modelhc.error <- aqsolubil.test.net$standard_value-aqsolubil.hc.predict
+```
+
+
+## error
+```{r}
+aqsolubil.modelhc.error <- aqsolubil.bayes.test$standard_value-aqsolubil.hc.predict
 aqsolubil.hc.PredictionRMSE <-sqrt(mean(aqsolubil.modelhc.error^2))
 print (aqsolubil.hc.PredictionRMSE)#1.91
-aqsolubil.hc.PredictionMAE<-mean(abs(aqsolubil.hc.predict-aqsolubil.test.net$standard_value))
+aqsolubil.hc.PredictionMAE<-mean(abs(aqsolubil.hc.predict-aqsolubil.bayes.test$standard_value))
+print (aqsolubil.hc.PredictionMAE)#1.38
 
-cbind(predicted=aqsolubil.hc.predict,actual=aqsolubil.test.net$standard_value)
+#cbind(predicted=aqsolubil.hc.predict,actual=aqsolubil.bayes.test$standard_value)
+```
 
+# Multiple Linear regression
 
-###########################Multiple Linear regression##############################
-plot(log(aqsolubil.train$standard_value+11))
+## selecting data
+```{r}
+aqsolubil.lin.data<-aqsolubil.data%>%select(mw_freebase, psa, acd_most_apka, acd_most_bpka, hba, hbd, rtb, mw_monoisotopic, aromatic_rings, full_mwt,standard_value) # 68%
+aqsolubil.lin.data<-drop_na(aqsolubil.lin.data)
 
-aqsolubil.lin.reg <- lm(log(standard_value+11) ~ mw_freebase +  psa + acd_most_apka + acd_most_bpka + hba +
-                          hbd + rtb+mw_monoisotopic+aromatic_rings+full_mwt, data = aqsolubil.train)
+aqsolubil.lin.data<-aqsolubil.lin.data[!duplicated(aqsolubil.lin.data),]
 
+samp <- sample(nrow(aqsolubil.lin.data), 0.6 * nrow(aqsolubil.lin.data))
+aqsolubil.lin.train <- aqsolubil.lin.data[samp, ]#744
+aqsolubil.lin.test <- aqsolubil.lin.data[-samp, ]#497
+```
 
-# Inspect the model
+## evaluation
+```{r}
+plot(log(aqsolubil.lin.train$standard_value+12))
+
+aqsolubil.lin.reg <- lm(log(standard_value+12) ~ mw_freebase +  psa + acd_most_apka + acd_most_bpka + hba + hbd + rtb+mw_monoisotopic+aromatic_rings+full_mwt, data = aqsolubil.lin.train)
+```
+
+## Inspect the model
+```{r}
 summary(aqsolubil.lin.reg)
 
-aqsolubil.pred.lin <- exp(predict(aqsolubil.lin.reg,aqsolubil.test))-11
+aqsolubil.pred.lin <- exp(predict(aqsolubil.lin.reg,aqsolubil.lin.test))-11
 
-aqsolubil.lin.reg.RMSE <- sqrt(mean((aqsolubil.pred.lin-aqsolubil.test$standard_value)^2))
+aqsolubil.lin.reg.RMSE <- sqrt(mean((aqsolubil.pred.lin-aqsolubil.lin.test$standard_value)^2))
 print(aqsolubil.lin.reg.RMSE)
-aqsolubil.lin.reg.MAE <- mean(abs(aqsolubil.pred.lin-aqsolubil.test$standard_value))
+aqsolubil.lin.reg.MAE <- mean(abs(aqsolubil.pred.lin-aqsolubil.lin.test$standard_value))
 print(aqsolubil.lin.reg.MAE)
+```
 
-################################# Neural Networks ###################################
 
+# Neural Networks 
+
+```{r}
 aqsolubil.data.NN<-aqsolubil.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,rtb,mw_monoisotopic, aromatic_rings,full_mwt,standard_value) # 76%
+```
 
 #check if no na is available
-apply(aqsolubil.data.NN,2,function(x) sum(is.na(x)))#fun?
 
-aqsolubil.lm.fit<-glm(standard_value~.,data=aqsolubil.train.net)
+```{r}
+apply(aqsolubil.data.NN,2,function(x) sum(is.na(x)))#fun?
+aqsolubil.data.NN<-aqsolubil.data.NN%>%drop_na()
+```
+
+```{r}
+aqsolubil.lm.fit<-glm(standard_value~.,data=aqsolubil.bayes.train)
 
 summary(aqsolubil.lm.fit)
 
-aqsolubil.pr.lm<-predict(aqsolubil.lm.fit,aqsolubil.test.net)
-aqsolubil.MSE.lm<-sum((aqsolubil.pr.lm-aqsolubil.test.net$standard_value)^2)/nrow(aqsolubil.test)
+aqsolubil.pr.lm<-predict(aqsolubil.lm.fit,aqsolubil.bayes.test)
+aqsolubil.MSE.lm<-sum((aqsolubil.pr.lm-aqsolubil.bayes.test$standard_value)^2)/nrow(aqsolubil.bayes.test)
 print(aqsolubil.MSE.lm)
+```
 
 
-
+```{r}
 aqsolubil.maxs<-apply(aqsolubil.data.NN,2,max)
 aqsolubil.mins<-apply(aqsolubil.data.NN,2,min)
 
@@ -168,14 +267,18 @@ aqsolubil.n<-names(aqsolubil.train.NN)
 aqsolubil.f<-as.formula(paste("standard_value ~",paste(aqsolubil.n[!aqsolubil.n %in% "standard_value"],collapse = " + ")))
 
 aqsolubil.NN.model<-neuralnet(aqsolubil.f,data=aqsolubil.train.NN,hidden=c(6,3),linear.output = TRUE)
-#algorithm did not converge in 1 of 1 repetition(s) within the stepmax 
+```
 
+algorithm did not converge in 1 of 1 repetition(s) within the stepmax 
+
+```{r}
 plot(aqsolubil.NN.model)
 
 str(aqsolubil.test.NN[,1:10])#retirar o standard_value
 aqsolubil.pred.NN<-compute(aqsolubil.NN.model,aqsolubil.test.NN[,1:10])
 
 aqsolubil.pred.NN_<-aqsolubil.pred.NN$net.result*(max(aqsolubil.data.NN$standard_value)-min(aqsolubil.data.NN$standard_value))+min(aqsolubil.data.NN$standard_value)
+
 aqsolubil.pred.NN.response<-(aqsolubil.test.NN$standard_value)*(max(aqsolubil.data.NN$standard_value)-min(aqsolubil.data.NN$standard_value))+min(aqsolubil.data.NN$standard_value)
 
 aqsolubil.nn.RMSE<-sum((aqsolubil.pred.NN.response-aqsolubil.pred.NN_)^2)/nrow(aqsolubil.test.NN)
@@ -187,9 +290,10 @@ print(aqsolubil.nn.MAE)
 
 plot(aqsolubil.test.NN$standard_value,aqsolubil.pred.NN$net.result,col="blue")
 abline(0,1,lwd=2)
+```
 
-
-#function for cross-validation Neural Network.
+# function for cross-validation Neural Network
+```{r}
 aqsolubil.cv.NN.error<-NULL
 k<-10
 
@@ -218,13 +322,13 @@ mean(aqsolubil.cv.NN.error)
 boxplot(aqsolubil.cv.NN.error,xlab='MSE NN CV',col='green',
         border='blue',names='CV error (MSE)',
         main='CV error (MSE) for NN',horizontal=TRUE)
+```
 
-
-######################################TOTAL#######################################
+# TOTAL
+```{r}
 aqsolubil.accuracy <- data.frame(Method = c("Random Forest","SVR","HC.Bayes","SVR Tuned","Random forest Tuned","Multiple Linear Regression","Neural Networks"),
                        RMSE   = c(rf.PredictionRMSE,aqsolubil.svrPredictionRMSE,aqsolubil.hc.PredictionRMSE,svrPrediction.tunedRMSE,rf.Prediction.tunedRMSE,aqsolubil.lin.reg.RMSE,aqsolubil.nn.RMSE),
                        MAE    = c(rf.PredictionMAE,aqsolubil.svrPredictionMAE,aqsolubil.hc.PredictionMAE,svrPrediction.tunedMAE,rf.Prediction.tunedMAE,aqsolubil.lin.reg.MAE,aqsolubil.nn.MAE)) 
-
 
 # Round the values and print the table
 aqsolubil.accuracy$RMSE <- round(aqsolubil.accuracy$RMSE,2)
@@ -235,28 +339,21 @@ grid.table(aqsolubil.accuracy)
 png("images/aqsolubil.png", height = 40*nrow(aqsolubil.accuracy), width = 100*ncol(aqsolubil.accuracy))
 grid.table(aqsolubil.accuracy)
 dev.off()
+```
+# OTHER (WIP)
 
-
-
-
-
-
-######################################OTHER#######################################WIP
-
-
-
-
-###rf Cross validation 2
-aqsolubil.rf.cv <- rf.crossValidation(aqsolubil.rf.mdl, aqsolubil.x.train, p=0.60, n=10, ntree=1500)# segunda versao cv
+```{r rf Cross validation 2}
+aqsolubil.rf.cv <- rf.crossValidation(aqsolubil.rf.mdl, aqsolubil.x.rf.train, p=0.60, n=10, ntree=1500)# segunda versao cv
 print(aqsolubil.rf.cv)
 
-aqsolubil.rf.cv.tuned <- rf.crossValidation(aqsolubil.rf.mdl.tuned, aqsolubil.x.train, p=0.10, n=10, ntree=1500)# segunda versao cv
+aqsolubil.rf.cv.tuned <- rf.crossValidation(aqsolubil.rf.mdl.tuned, aqsolubil.rf.train, p=0.70, n=10, ntree=1500)# segunda versao cv
 print(aqsolubil.rf.cv.tuned)
+help("rf.crossValidation")
+```
 
 
-
-############CV TOTAL ##########
-aqsolubil.accuracy.cv<-data.frame(Method=c("Random Forest CV10","Random Forest Tuned CV10","Neural Networks CV20","SVR Tuned CV10")
+```{r CV TOTAL}
+aqsolubil.accuracy.cv<-data.frame(Method=c("Rf CV10 ","Rf Tuned CV10 ","Neural Networks CV20","SVR Tuned CV10")
                              ,RMSE=c(mean(aqsolubil.rf.cv$y.rmse),mean(aqsolubil.rf.cv.tuned$y.rmse),mean(aqsolubil.cv.NN.error),svrPrediction.tunedRMSE)
                              ,MAE=c(mean(aqsolubil.rf.cv$y.mae),mean(aqsolubil.rf.cv.tuned$y.mae),0,svrPrediction.tunedMAE))
 
@@ -265,5 +362,4 @@ aqsolubil.accuracy.cv$MAE <- round(aqsolubil.accuracy.cv$MAE,2)
 
 
 print(aqsolubil.accuracy.cv)
-
-
+```
