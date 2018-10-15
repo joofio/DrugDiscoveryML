@@ -1,14 +1,22 @@
+---
+title: "Import"
+author: "John Me"
+date: "october 15, 2018"
+output:
+  pdf_document: default
+---
+
 Install packages needed and do not come from source
 ```{r}
 #install.packages(c("bnlearn","gRain","pROC","epitools"))
 
 #install.packages(c("RANN","caret","plyr", "dplyr", "rfUtilities", "party", "e1071", "bnlearn", "neuralnet", "randomForest", "ggplot2"))
+#source("http://bioconductor.org/biocLite.R")
+#biocLite(c("graph","RBGL","Rgraphviz"))
 ```
 
 activating needed packages
-```{r}
-source("http://bioconductor.org/biocLite.R")
-biocLite(c("graph","RBGL","Rgraphviz"))
+```{r echo=FALSE}
 library(tidyr)
 library(party)
 library(randomForest)
@@ -16,12 +24,14 @@ library(plyr)
 library(dplyr)
 library(rfUtilities)
 library(ggplot2)
-library (e1071)
+library(e1071)
 library(bnlearn)
 library(neuralnet)
 library(caret)
+library(mlbench)
 library('RANN')
 library(gridExtra)
+library(knitr)
 ```
 
 ```{r}
@@ -58,11 +68,26 @@ data$published_value <-as.numeric(as.character(data$published_value))
 #character
 data$standard_units <-as.character(data$standard_units)
 data$description <-as.character(data$description)
+data$description <-as.character(data$md)
+data$description <-as.character(data$cp)
+data$description <-as.character(data$at)
+data$description <-as.character(data$molecular_species)
+
 ```
 
 ```{r}
-data<-data%>%select(-md,-cp,-molregno.1,-cr,-molregno.2,-molregno.3,-doc_id.1,-doc_id.2,-aa,-src_id.1,-chembl_id.1,-assay_id.1,-record_id.1)
-show(data)
+data<-data%>%select(-md,-cp,-molregno.1,-cr,-molregno.2,-molregno.3,-doc_id.1,-doc_id.2,-aa,-src_id.1,-chembl_id.1,-assay_id.1,-record_id.1,-at)
+#show(data)
+
+```
+
+```{r}
+hist(data$therapeutic_flag)
+barplot(table(data$chebi_par_id))
+barplot(table(data$first_approval))
+hist(data$oral)
+hist(data$natural_product)
+hist(data$polymer_flag)
 
 ```
 
