@@ -65,7 +65,7 @@ print(rf.PredictionMAE)
 
 
 ```{r tuning rf}
-aqsolubil.rf.mdl.tuned<-tuneRF(aqsolubil.x.rf.train,aqsolubil.y.rf.train,mtryStart = 3,ntreeTry = 1500, improve = 0.01,doBest = TRUE)
+aqsolubil.rf.mdl.tuned<-tuneRF(aqsolubil.x.rf.train,aqsolubil.y.rf.train,mtryStart = 3,ntreeTry = 2500, improve = 0.01,doBest = TRUE)
 help("tuneRF")
 aqsolubil.pred.tuned<-predict(aqsolubil.rf.mdl.tuned,aqsolubil.rf.test)
 
@@ -98,6 +98,9 @@ aqsolubil.svr.test <- aqsolubil.svr.data[-samp, ]#497
 
 aqsolubil.x.svr.train<-aqsolubil.svr.train%>%select(-standard_value) # 68%
 aqsolubil.y.svr.train<-aqsolubil.svr.train$standard_value
+
+aqsolubil.x.svr.test<-aqsolubil.svr.test%>%select(-standard_value) # 68%
+aqsolubil.y.svr.test<-aqsolubil.svr.test$standard_value
 ```
 
 
@@ -107,13 +110,13 @@ aqsolubil.predict.svr <-predict(aqsolubil.modelsvr,aqsolubil.x.svr.test)
 
 print(aqsolubil.modelsvr)
 
-plot(aqsolubil.svr.train$standard_value)
+plot(aqsolubil.svr.test$standard_value)
 points(aqsolubil.predict.svr,col="Green")
 ```
 
 
 ```{r evaluation}
-aqsolubil.modelsvr.error <- aqsolubil.svr.train$standard_value-aqsolubil.predict.svr
+aqsolubil.modelsvr.error <- aqsolubil.svr.test$standard_value-aqsolubil.predict.svr
 aqsolubil.svrPredictionRMSE <-sqrt(mean(aqsolubil.modelsvr.error^2))
 print (aqsolubil.svrPredictionRMSE)#1.14
 aqsolubil.svrPredictionMAE<-mean(abs(aqsolubil.predict.svr-aqsolubil.svr.test$standard_value))
@@ -126,15 +129,7 @@ tc <- tune.control(cross = 10)
 ```
 
 
-```{r first choice}
-
-aqsolubil.svr.tunedresult<-tune(svm,train.x=aqsolubil.x.train,train.y=aqsolubil.y.train,ranges=list(epsilon=seq(0,1,0.1),cost=2^(2:9)))
-print(aqsolubil.svr.tunedresult)
-plot(aqsolubil.svr.tunedresult)
-```
-
-
-```{r alternative}
+```{r tuning}
 aqsolubil.svr.tunedresult<-tune(svm,train.x=aqsolubil.x.svr.train,train.y=aqsolubil.y.svr.train,ranges=list(epsilon=seq(0,0.2,0.01),cost=2^(2:7)),tunecontrol = tc)
 print(aqsolubil.svr.tunedresult)
 plot(aqsolubil.svr.tunedresult)
@@ -142,11 +137,11 @@ plot(aqsolubil.svr.tunedresult)
 
 
 ```{r tuning evaluation}
-aqsolubil.predict.svr.tuned <-predict(aqsolubil.svr.tunedresult$best.model,aqsolubil.x.svr.train)
-aqsolubil.modelsvr.error.tuned <- aqsolubil.svr.train$standard_value-aqsolubil.predict.svr.tuned
+aqsolubil.predict.svr.tuned <-predict(aqsolubil.svr.tunedresult$best.model,aqsolubil.x.svr.test)
+aqsolubil.modelsvr.error.tuned <- aqsolubil.svr.test$standard_value-aqsolubil.predict.svr.tuned
 svrPrediction.tunedRMSE <-sqrt(mean(aqsolubil.modelsvr.error.tuned^2))
 print (svrPrediction.tunedRMSE)#0.62
-svrPrediction.tunedMAE <- mean(abs(aqsolubil.predict.svr.tuned-aqsolubil.svr.train$standard_value))
+svrPrediction.tunedMAE <- mean(abs(aqsolubil.predict.svr.tuned-aqsolubil.svr.test$standard_value))
 print(svrPrediction.tunedMAE)
 ```
 
@@ -268,8 +263,7 @@ algorithm did not converge in 1 of 1 repetition(s) within the stepmax
 ```{r}
 plot(aqsolubil.NN.model)
 
-str(aqsolubil.test.NN[,1:10])#retirar o standard_value
-aqsolubil.pred.NN<-compute(aqsolubil.NN.model,aqsolubil.test.NN[,1:10])
+aqsolubil.pred.NN<-compute(aqsolubil.NN.model,aqsolubil.test.NN%>%select(-standard_value))
 
 aqsolubil.pred.NN_<-aqsolubil.pred.NN$net.result*(max(aqsolubil.data.NN$standard_value)-min(aqsolubil.data.NN$standard_value))+min(aqsolubil.data.NN$standard_value)
 

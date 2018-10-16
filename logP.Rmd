@@ -39,7 +39,6 @@ logp.y.rf.train<-logp.rf.train$standard_value
 
 
 ```{r create model rf}
-
 logp.rf.mdl <-randomForest(logp.y.rf.train,x=logp.x.rf.train,mtry=5,ntree=1500)
 print(logp.rf.mdl)
 varImpPlot(logp.rf.mdl)
@@ -68,26 +67,37 @@ logp.rf.tuned.PredictionRMSE<-mean((logp.pred.rf.tuned-logp.rf.test$standard_val
 print(logp.rf.tuned.PredictionRMSE)
 logp.rf.tuned.PredictionMAE<-mean(abs(logp.pred.rf.tuned-logp.rf.test$standard_value)) 
 print(logp.rf.tuned.PredictionMAE)
+```
 
+```{r}
 # Manual Search
 modellist <- list()
 for (ntree in c(2000, 2500)) {
-  for (mtry in c(8,9)){
-    for (nodesize in c(9)){
-  set.seed(123)
-  fit <- rf.crossValidation(logp.rf.mdl, logp.x.rf.train, p=0.60, n=10, ntree=ntree, mtry=mtry, nodesize=nodesize)# segunda versao cv
+  for (mtry in c(8, 9)) {
+  for (nodesize in c(9)) {
+      set.seed(123)
+
+  fit <-rf.crossValidation(logp.rf.mdl, logp.x.rf.train,p = 0.60,n = 10,ntree = ntree,mtry = mtry,nodesize = nodesize)# segunda versao cv
   key <- toString(ntree)
   key2 <- toString(mtry)
   key3 <- toString(nodesize)
   
   modellist[[key]][[key2]][[key3]] <- fit$y.rmse
-}
+  modellist[[key]][[key2]][[key3]][['avg']]<- mean(fit$y.rmse)
+  }
   }
 }
 # compare results
-boxplot(modellist[2000][8][9])
+print(modellist)
+modeldf <- melt(modellist)
 
-modellist$`2500--9--9`
+# plot using base R boxplot function
+boxplot(value ~ variable, data = modeldf)
+
+boxplot(modellist$`2000`$`8`$`9`)
+
+
+modellist$`2000`$`8`$`9`
 results <- resamples(modellist)
 summary(modellist)
 dotplot(results)
@@ -351,6 +361,10 @@ logp.pred.NN.response<-(logp.NN.test$standard_value)*(max(logp.NN.data$standard_
 logp.nn.RMSE<-sum((logp.pred.NN.response-logp.pred.NN_)^2)/nrow(logp.NN.test)
 print(logp.nn.RMSE)
 
+logp.nn.MAE<-mean(abs(logp.pred.NN.response-logp.pred.NN_))
+print(aqsolubil.nn.MAE)
+
+
 plot(logp.NN.test$standard_value,logp.pred.NN$net.result,col="blue")
 abline(0,1,lwd=2)
 ```
@@ -393,7 +407,7 @@ boxplot(logp.cv.NN.error,xlab='MSE NN CV',col='green',
 ```{r}
 logp.accuracy <- data.frame(Method = c("Random Forest","SVR","HC.Bayes","SVR Tuned","Random forest Tuned","Multiple Linear Regression", "Neural Networks"),
                                RMSE   = c(logp.rf.PredictionRMSE,logp.svrPredictionRMSE,logp.hc.PredictionRMSE,svrPrediction.tuned.RMSE,logp.rf.tuned.PredictionRMSE,logp.lin.reg.RMSE,logp.nn.RMSE),
-                               MAE    = c(logp.rf.PredictionMAE,logp.svrPredictionMAE,logp.hc.PredictionMAE,svrPrediction.tuned.MAE,logp.rf.tuned.PredictionMAE,logp.lin.reg.MAE,0)) 
+                               MAE    = c(logp.rf.PredictionMAE,logp.svrPredictionMAE,logp.hc.PredictionMAE,svrPrediction.tuned.MAE,logp.rf.tuned.PredictionMAE,logp.lin.reg.MAE,logp.nn.MAE)) 
 
 # Round the values and print the table
 logp.accuracy$RMSE <- round(logp.accuracy$RMSE,2)
@@ -401,11 +415,13 @@ logp.accuracy$MAE <- round(logp.accuracy$MAE,2)
 
 print (logp.accuracy)
 grid.table(logp.accuracy)
+```
+
+```{r}
 png("images/logp.png", height = 40*nrow(logp.accuracy), width = 100*ncol(logp.accuracy))
 grid.table(logp.accuracy)
 dev.off()
 ```
-
 
 # Cross Validation
 ```{r}
