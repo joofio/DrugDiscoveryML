@@ -1,0 +1,115 @@
+---
+title: "Import Data"
+author: "João Almeida"
+date: today()
+output:
+  pdf_document: default
+---
+
+Install packages needed and do not come from source
+```{r}
+#install.packages(c("bnlearn","gRain","pROC","epitools"))
+
+#install.packages(c("RANN","caret","plyr", "dplyr", "rfUtilities", "party", "e1071", "bnlearn", "neuralnet", "randomForest", "ggplot2"))
+#source("http://bioconductor.org/biocLite.R")
+#biocLite(c("graph","RBGL","Rgraphviz"))
+```
+
+Activating needed packages
+```{r echo=FALSE message=FALSE warning=FALSE}
+library(tidyr)
+library(party)
+library(randomForest)
+library(plyr)
+library(dplyr)
+library(rfUtilities)
+library(ggplot2)
+library(e1071)
+library(bnlearn)
+library(neuralnet)
+library(caret)
+library(mlbench)
+library('RANN')
+library(gridExtra)
+library(knitr)
+```
+
+```{r}
+set.seed(123)
+```
+
+```{r}
+#read csv origin Chembl23
+data<-read.csv(file="product_adme.csv")
+#numeric
+data$standard_value <-as.numeric(as.character(data$standard_value))
+data$alogp <-as.numeric(as.character(data$alogp))
+data$hba <-as.numeric(as.character(data$hba))
+data$hbd <-as.numeric(as.character(data$hbd))
+data$mw_freebase <-as.numeric(as.character(data$mw_freebase))
+data$acd_most_apka <-as.numeric(as.character(data$acd_most_apka))
+data$acd_most_bpka <-as.numeric(as.character(data$acd_most_bpka))
+data$num_lipinski_ro5_violations <-as.numeric(as.character(data$num_lipinski_ro5_violations))
+data$psa <-as.numeric(as.character(data$psa))
+data$acd_logp <-as.numeric(as.character(data$acd_logp))
+data$acd_logd <-as.numeric(as.character(data$acd_logd))
+data$heavy_atoms <-as.numeric(as.character(data$heavy_atoms))
+data$qed_weighted <-as.numeric(as.character(data$qed_weighted))
+data$num_ro5_violations <-as.numeric(as.character(data$num_ro5_violations))
+data$rtb <-as.numeric(as.character(data$rtb))
+data$hba_lipinski <-as.numeric(as.character(data$hba_lipinski))
+data$mw_monoisotopic <-as.numeric(as.character(data$mw_monoisotopic))
+data$full_mwt <-as.numeric(as.character(data$full_mwt))
+data$aromatic_rings <-as.numeric(as.character(data$aromatic_rings))
+data$mw_monoisotopic <-as.numeric(as.character(data$mw_monoisotopic))
+data$hbd_lipinski <-as.numeric(as.character(data$hbd_lipinski))
+data$published_value <-as.numeric(as.character(data$published_value))
+#character
+data$standard_units <-as.character(data$standard_units)
+data$description <-as.character(data$description)
+data$md <-as.character(data$md)
+data$cp <-as.character(data$cp)
+data$at <-as.character(data$at)
+data$molecular_species <-as.character(data$molecular_species)
+
+```
+
+```{r}
+data<-data%>%select(-md,-cp,-molregno.1,-cr,-molregno.2,-molregno.3,-doc_id.1,-doc_id.2,-aa,-src_id.1,-chembl_id.1,-assay_id.1,-record_id.1,-at)
+#show(data)
+
+```
+
+```{r}
+hist(data$therapeutic_flag)
+barplot(table(data$chebi_par_id))
+barplot(table(data$first_approval))
+hist(data$oral)
+hist(data$natural_product)
+hist(data$polymer_flag)
+barplot(table(data$description))
+
+
+```
+```{r drugbank import}
+#drugbank teste WIP
+
+dbdata<-read.csv(file="drugbank.csv",sep=";")
+
+str(dbdata)
+glimpse(dbdata)
+
+dbdata$published_value <-as.numeric(as.character(dbdata$published_value))
+dbdata$Water.Solubility.EXP <-as.character(dbdata$Water.Solubility.EXP)
+
+dbdata<-dbdata%>%select('drugbank_id', 'name', 'type',  'average.mass', 'monoisotopic.mass', 'volume.of.distribution', 'clearance', 'half.life', 'toxicity', 'metabolism', 'metabolism.1', 'absorption', 'smiles', 'melting.point', 'logS.EXP', 'logP.EXP', 'pKa.EXP', 'Isoelectric.Point', 'Molecular.Weight', 'Molecular.Formula', 'Hydrophobicity', 'Boiling.Point', 'Caco2.Permeability', 'Water.Solubility.EXP', 'PSA.calc', 'Refractivity.calc', 'Polarizability', 'Ghose.Filter', 'MDDR.Like.Rule')
+
+dbcolumns<-names(dbdata)
+print(paste(dbcolumns, collapse="', '"))
+
+dbdata$Boiling.Point <-as.numeric(as.character(dbdata$Boiling.Point))
+dbdata$name <-as.character(dbdata$name)
+dbdata$Molecular.Formula <-as.character(dbdata$Molecular.Formula)
+
+```
+

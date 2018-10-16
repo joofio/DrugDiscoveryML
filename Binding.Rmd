@@ -1,89 +1,145 @@
+---
+title: "Binding"
+author: "João Almeida"
+date: "16 de Outubro de 2018"
+output: html_document
+---
+```{r}
 set.seed(123)
+```
 
 #select assay necessary
-binding.data<-data%>%filter(assay_id.1==225074)#Binding energy by using the equation deltaG obsd = -RT ln KD
-print(assaydata)
-summary(assaydata)
+```{r}
+binding.data<-data%>%filter(assay_id==225074)#Binding energy by using the equation deltaG obsd = -RT ln KD
+str(binding.data)
+summary(binding.data)
+```
 
-#eliminate NAs
-binding.data<-binding.data%>%filter(!is.na(mw_freebase))
-binding.data<-binding.data%>%filter(!is.na(psa))
-binding.data<-binding.data%>%filter(!is.na(acd_most_apka))#quase 2000
-binding.data<-binding.data%>%filter(!is.na(hba))
-binding.data<-binding.data%>%filter(!is.na(hbd))
-binding.data<-binding.data%>%filter(!is.na(acd_logp))
-binding.data<-binding.data%>%filter(!is.na(acd_logd))
-binding.data<-binding.data%>%filter(!is.na(rtb))
-binding.data<-binding.data%>%filter(!is.na(acd_most_bpka))#quase 1000
-binding.data<-binding.data%>%filter(!is.na(mw_monoisotopic))
-binding.data<-binding.data%>%filter(!is.na(aromatic_rings))
-binding.data<-binding.data%>%filter(!is.na(full_mwt))
-binding.data<-binding.data%>%filter(!is.na(qed_weighted))
+```{r}
+binding.rf.data<-binding.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,acd_logp,acd_logd,heavy_atoms,rtb,hba_lipinski,mw_monoisotopic, aromatic_rings,full_mwt,mw_monoisotopic,hbd_lipinski,standard_value) 
+binding.rf.data<-drop_na(binding.rf.data)
+
+binding.rf.predictors<-binding.rf.data%>%select(-standard_value) 
+binding.rf.response<-binding.rf.data$standard_value
+str(binding.rf.predictors)
+```
 
 
-#tentar todas as possiveis para avaliar impt
-binding.response<-binding.data$standard_value
+```{r testing PCA}
+#1
+correlationMatrix <- cor(binding.rf.predictors[,1:8])
+print(correlationMatrix)
+# find attributes that are highly corrected (ideally >0.75)
+highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=0.5)
+# print indexes of highly correlated attributes
+print(highlyCorrelated)
 
 
+#2
+control <- trainControl(method="repeatedcv", number=5, repeats=3)
+# train the model
+model <- train(standard_value~., data=binding.rf.data, method="rf", preProcess=c("center","scale"), trControl=control, importance=TRUE)
+# estimate variable importance
+importance <- varImp(model, scale=FALSE)
+# summarize importance
+print(importance)
+# plot importance
+plot(importance)
 
 
-binding.predictors1<-binding.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,acd_logp,acd_logd,heavy_atoms,rtb,hba_lipinski,mw_monoisotopic, molecular_species, aromatic_rings,full_mwt) # 64%
-binding.predictors2<-binding.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,acd_logp,acd_logd,heavy_atoms,rtb,hba_lipinski,mw_monoisotopic, molecular_species, aromatic_rings,full_mwt,mw_monoisotopic,hbd_lipinski) # 64%
-binding.predictors3<-binding.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,acd_logp,acd_logd,heavy_atoms) # 57%
-binding.predictors4<-binding.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,acd_logp,acd_logd,qed_weighted) # 59%
-binding.predictors5<-binding.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,acd_logp,acd_logd,qed_weighted) # 61%
+#3
+names(binding.rf.predictors)
+prin_comp <- prcomp(binding.rf.predictors, scale. = T)
+prin_comp <- prcomp(binding.rf.predictors[,1:9], scale. = T)
 
-################################random forest################################
-###para Cross validation
-binding.rf.mdl <-randomForest(binding.response,x=binding.predictors2)
+names(prin_comp)
+#outputs the mean of variables
+prin_comp$center
+
+#outputs the standard deviation of variables
+prin_comp$scale
+
+biplot(prin_comp, scale = 0)
+
+std_dev <- prin_comp$sdev
+
+#compute variance
+pr_var <- std_dev^2
+
+#check variance of first 10 components
+pr_var[1:10]
+prop_varex <- pr_var/sum(pr_var)
+prop_varex[1:15]
+plot(prop_varex, xlab = "Principal Component",
+             ylab = "Proportion of Variance Explained",
+             type = "b")
+
+plot(cumsum(prop_varex), xlab = "Principal Component",
+              ylab = "Cumulative Proportion of Variance Explained",
+              type = "b")
+binding.rf.predictors[,1:8]
+#os 8 primeiros x conseguem prever com mt precisao a variancia
+```
+
+# random forest
+
+```{r}
+binding.rf.mdl <-randomForest(binding.rf.response,x=binding.rf.predictors[,1:8])
 print(binding.rf.mdl)
 varImpPlot(binding.rf.mdl)
 importance(binding.rf.mdl)
-getTree(binding.rf.mdl, 3, labelVar=TRUE)#print de arvores
-
+#getTree(binding.rf.mdl, 3, labelVar=TRUE)#print trees
+```
 
 ###para test e train
-samp <- sample(nrow(binding.data), 0.6 * nrow(binding.data))
-binding.train <- binding.data[samp, ]
-binding.test <- binding.data[-samp, ]
+```{r}
+samp <- sample(nrow(binding.rf.data), 0.6 * nrow(binding.rf.data))
+binding.rf.train <- binding.rf.data[samp, ]
+binding.rf.test <- binding.rf.data[-samp, ]
 
-binding.y.train<-binding.train$standard_value
-binding.x.train<-binding.train%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,acd_logp,acd_logd,qed_weighted) # 59%
-binding.x.train2<-binding.train%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,acd_logp,acd_logd,heavy_atoms,rtb,hba_lipinski,mw_monoisotopic, molecular_species, aromatic_rings,full_mwt,mw_monoisotopic,hbd_lipinski) # 64%
+binding.y.rf.train<-binding.rf.train$standard_value
+binding.x.rf.train<-binding.rf.train%>%select(-standard_value) # 64%
 
-binding.rf.mdl2 <-randomForest(binding.y.train,x=binding.x.train2,ntree = 1500,proximity = TRUE )
+binding.rf.mdl2 <-randomForest(binding.y.rf.train,x=binding.x.rf.train,ntree = 1500,proximity = TRUE )
 print(binding.rf.mdl2)
-binding.pred<-predict(binding.rf.mdl2,binding.test)
+binding.pred<-predict(binding.rf.mdl2,binding.rf.test)
 
-
-#MSE
-plot(binding.pred,binding.test$standard_value)
+plot(binding.pred,binding.rf.test$standard_value)
 abline(0,1, col="blue")
+```
 
 ###MSE propriamente dito, e n previsto como no print rf
-rf.predction.RMSE<-mean((binding.pred-binding.test$standard_value)^2)  #3.19
+
+```{r}
+rf.predction.RMSE<-mean((binding.pred-binding.rf.test$standard_value)^2)  #3.19
 print(rf.predction.RMSE)
-rf.predction.MAE<-mean(abs(binding.pred-binding.test$standard_value))
+rf.predction.MAE<-mean(abs(binding.pred-binding.rf.test$standard_value))
 print(rf.predction.MAE)
 
-#########?????MDSplot####TUNERF#####
 help("MDSplot")
-MDSplot(binding.rf.mdl2,fac=binding.y.train,pallete=c(1,15),pch=20)
+MDSplot(binding.rf.mdl2,fac=binding.y.rf.train,k=2,pallete=c(1,15),pch=20)
+```
 
 
-#tuning rf
-binding.rf.mdl.tuned<-tuneRF(binding.x.train2,binding.y.train,mtryStart = 3,ntreeTry = 1500, improve = 0.01,doBest = TRUE)
-binding.pred.tuned<-predict(binding.rf.mdl.tuned,binding.test)
-plot(binding.pred.tuned,binding.test$standard_value)
+```{r tuning rf}
+binding.rf.mdl.tuned<-tuneRF(binding.x.rf.train,binding.y.rf.train,mtryStart = 3,ntreeTry = 1500, improve = 0.01,doBest = TRUE)
+print(binding.rf.mdl.tuned)
+
+binding.pred.tuned<-predict(binding.rf.mdl.tuned,binding.rf.test)
+plot(binding.pred.tuned,binding.rf.test$standard_value)
 abline(0,1, col="blue")
-binding.rf.Prediction.tunedRMSE<-mean((binding.pred.tuned-binding.test$standard_value)^2)  #2.77
-print(binding.rf.Prediction.tunedRMSE)
-binding.rf.Prediction.tunedMAE<-mean(abs(binding.pred.tuned-binding.test$standard_value))
+
+binding.rf.Prediction.tunedRMSE<-mean((binding.pred.tuned-binding.rf.test$standard_value)^2) 
+print(binding.rf.Prediction.tunedRMSE)#2.81 
+binding.rf.Prediction.tunedMAE<-mean(abs(binding.pred.tuned-binding.rf.test$standard_value))
 print(binding.rf.Prediction.tunedMAE)#1.04
 
-print(binding.rf.mdl.tuned)
-######################################SVR#######################################
+```
 
+#SVR
+```{r}
+
+binding.x.train<-binding.train%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,acd_logp,acd_logd,qed_weighted) # 59%
 binding.modelsvr<-svm(y=binding.y.train,x=binding.x.train)
 binding.predict.svr <-predict(binding.modelsvr,binding.x.train)
 
@@ -115,16 +171,19 @@ print(binding.svr.tunedresult)
 plot(binding.svr.tunedresult)
 
 binding.predict.svr.tuned <-predict(binding.svr.tunedresult$best.model,binding.x.train)
-binding.predict.svr.tuned <-predict(binding.svr.tunedresult$best.model,binding.test)
+#binding.predict.svr.tuned <-predict(binding.svr.tunedresult$best.model,binding.test)
 
 binding.modelsvr.error.tuned <- binding.train$standard_value-binding.predict.svr.tuned
 svrPrediction.tunedRMSE <-sqrt(mean(binding.modelsvr.error.tuned^2))
 print (svrPrediction.tunedRMSE)#
 svrPrediction.tunedMAE <-mean(abs(binding.predict.svr.tuned-binding.train$standard_value))
 print (svrPrediction.tunedMAE)#
+```
 
 
-################################BAYES############################################
+# BAYES
+```{r}
+
 samp <- sample(nrow(binding.data), 0.6 * nrow(binding.data))
 binding.train <- binding.data[samp, ]#744
 binding.test <- binding.data[-samp, ]#497
@@ -155,8 +214,12 @@ print (binding.hc.PredictionMAE)#2.53
 
 
 cbind(predicted=binding.hc.predict,actual=binding.test.net$standard_value)
+```
 
-###########################Multiple Linear regression##############################
+
+# Multiple Linear regression
+```{r}
+
 plot(log(binding.train$standard_value))
 
 binding.lin.reg <- lm(log(standard_value+1) ~ mw_freebase +  psa + acd_most_apka + acd_most_bpka + hba +
@@ -179,8 +242,11 @@ binding.lin.reg.RMSE <- sqrt(mean((binding.pred.lin-binding.test$standard_value)
 print(binding.lin.reg.RMSE)
 binding.lin.reg.MAE <- mean(abs(binding.pred.lin-binding.test$standard_value))
 print(binding.lin.reg.MAE)
+```
 
-################################# Neural Networks ###################################
+
+# Neural Networks 
+```{r}
 
 binding.data.NN<-binding.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,rtb,mw_monoisotopic, aromatic_rings,full_mwt,standard_value) # 76%
 
@@ -266,9 +332,12 @@ mean(binding.cv.NN.error)
 boxplot(binding.cv.NN.error,xlab='MSE NN CV',col='green',
         border='blue',names='CV error (MSE)',
         main='CV error (MSE) for NN',horizontal=TRUE)
+```
 
 
-######################################TOTAL#######################################
+# TOTAL
+```{r}
+
 binding.accuracy <- data.frame(Method = c("Random Forest","SVR","HC.Bayes","SVR Tuned","Random forest Tuned","Multiple Linear Regression","Neural Networks"),
                        RMSE   = c(rf.predction.RMSE,binding.svrPredictionRMSE,binding.hc.PredictionRMSE,svrPrediction.tunedRMSE,binding.rf.Prediction.tunedRMSE,binding.lin.reg.RMSE,mean(binding.cv.NN.error)),
                        MAE    = c(rf.predction.MAE,binding.svrPredictionMAE,binding.hc.PredictionMAE,svrPrediction.tunedMAE,binding.rf.Prediction.tunedMAE,binding.lin.reg.MAE,0)) 
@@ -280,8 +349,15 @@ binding.accuracy$RMSE <- round(binding.accuracy$RMSE,2)
 binding.accuracy$MAE <- round(binding.accuracy$MAE,2) 
 
 print (binding.accuracy)
+grid.table(binding.accuracy)
+png("images/Binding.png", height = 40*nrow(binding.accuracy), width = 100*ncol(binding.accuracy))
+grid.table(binding.accuracy)
+dev.off()
+```
 
-######################################OUTROS#######################################
+
+# OUTROS
+```{r}
 
 ###rf Cross validation 2
 binding.rf.cv <- rf.crossValidation(binding.rf.mdl, binding.x.train, p=0.60, n=10, ntree=1500)# segunda versao cv
@@ -289,4 +365,7 @@ print(binding.rf.cv)
 
 binding.rf.cv.tuned <- rf.crossValidation(binding.rf.mdl.tuned, binding.x.train, p=0.10, n=10, ntree=1500)# segunda versao cv
 print(binding.rf.cv.tuned)
+```
+
+
 
