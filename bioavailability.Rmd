@@ -1,3 +1,9 @@
+---
+title: "bioavailability"
+author: "João Almeida"
+date: "16 de Outubro de 2018"
+output: html_document
+---
 # Bioavailability
 ```{r}
 set.seed(123)
@@ -11,7 +17,6 @@ bioavail.data<-data%>%filter(description=='Bioavailability')
 bioavail.data<-data%>%filter(grepl('(Bioavailability)',description))
 
 bioavail.data<-bioavail.data%>%filter(standard_units!="NULL")
-
 ```
 
 ```{r}
@@ -54,6 +59,3 @@ abline(0,1,col="blue")
 ###MSE propriamente dito, e n previsto como no print rf
 mean((bioavail.pred-bioavail.rf.test$standard_value)^2) #500+
 ```
-
-
-

@@ -1,3 +1,9 @@
+---
+title: "logP"
+author: "João Almeida"
+date: "16 de Outubro de 2018"
+output: html_document
+---
 
 set.seed(123)
 
@@ -33,17 +39,16 @@ logp.test <- logp.data[-samp, ]#497
 #[5] "hbd"            "rtb"            "hba"
 logp.x.train<-logp.train%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,rtb,mw_monoisotopic, aromatic_rings,full_mwt) # 76%
 
-logp.x.train<-logp.train%>%select( psa,acd_most_apka, acd_most_bpka, hba,hbd,rtb, aromatic_rings) # 76%
+logp.x.train<-logp.train%>%select( psa, acd_most_bpka, hba,hbd,rtb, aromatic_rings) # 76%
 logp.y.train<-logp.train$standard_value
 
 
-logp.rf.mdl <-randomForest(logp.y.train,x=logp.x.train,mtry=7,ntree=1500)
+logp.rf.mdl <-randomForest(logp.y.train,x=logp.x.train,mtry=5,ntree=1500)
 print(logp.rf.mdl)
 varImpPlot(logp.rf.mdl)
 importance(logp.rf.mdl)
 
 logp.pred<-predict(logp.rf.mdl,newdata=logp.test)
-
 plot(logp.pred,logp.test$standard_value)
 abline(0,1,col="blue")
 ###MSE propriamente dito, e n previsto como no print rf
@@ -382,4 +387,5 @@ logp.accuracy.cv$MAE <- round(logp.accuracy.cv$MAE,2)
 
 
 print(logp.accuracy.cv)
+
 
