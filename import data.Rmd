@@ -1,7 +1,7 @@
 ---
-title: "Import"
-author: "John Me"
-date: "october 15, 2018"
+title: "Import Data"
+author: "João Almeida"
+date: today()
 output:
   pdf_document: default
 ---
@@ -15,8 +15,8 @@ Install packages needed and do not come from source
 #biocLite(c("graph","RBGL","Rgraphviz"))
 ```
 
-activating needed packages
-```{r echo=FALSE}
+Activating needed packages
+```{r echo=FALSE message=FALSE warning=FALSE}
 library(tidyr)
 library(party)
 library(randomForest)
@@ -35,7 +35,6 @@ library(knitr)
 ```
 
 ```{r}
-#set seed
 set.seed(123)
 ```
 
@@ -68,10 +67,10 @@ data$published_value <-as.numeric(as.character(data$published_value))
 #character
 data$standard_units <-as.character(data$standard_units)
 data$description <-as.character(data$description)
-data$description <-as.character(data$md)
-data$description <-as.character(data$cp)
-data$description <-as.character(data$at)
-data$description <-as.character(data$molecular_species)
+data$md <-as.character(data$md)
+data$cp <-as.character(data$cp)
+data$at <-as.character(data$at)
+data$molecular_species <-as.character(data$molecular_species)
 
 ```
 
@@ -88,6 +87,8 @@ barplot(table(data$first_approval))
 hist(data$oral)
 hist(data$natural_product)
 hist(data$polymer_flag)
+barplot(table(data$description))
+
 
 ```
 

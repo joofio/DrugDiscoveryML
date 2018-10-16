@@ -24,13 +24,6 @@ binding.rf.response<-binding.rf.data$standard_value
 str(binding.rf.predictors)
 ```
 
-```{r predictor alternative}
-binding.predictors<-binding.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,acd_logp,acd_logd,heavy_atoms,rtb,hba_lipinski,mw_monoisotopic, molecular_species, aromatic_rings,full_mwt) # 64%
-binding.predictors<-binding.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,acd_logp,acd_logd,heavy_atoms) # 57%
-binding.predictors<-binding.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,acd_logp,acd_logd,qed_weighted) # 59%
-binding.predictors<-binding.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,acd_logp,acd_logd,qed_weighted) # 61%
-```
-
 
 ```{r testing PCA}
 #1
@@ -115,7 +108,6 @@ plot(binding.pred,binding.rf.test$standard_value)
 abline(0,1, col="blue")
 ```
 
-
 ###MSE propriamente dito, e n previsto como no print rf
 
 ```{r}
@@ -129,8 +121,7 @@ MDSplot(binding.rf.mdl2,fac=binding.y.rf.train,k=2,pallete=c(1,15),pch=20)
 ```
 
 
-#tuning rf
-```{r}
+```{r tuning rf}
 binding.rf.mdl.tuned<-tuneRF(binding.x.rf.train,binding.y.rf.train,mtryStart = 3,ntreeTry = 1500, improve = 0.01,doBest = TRUE)
 print(binding.rf.mdl.tuned)
 
@@ -145,7 +136,9 @@ print(binding.rf.Prediction.tunedMAE)#1.04
 
 ```
 
-######################################SVR#######################################
+#SVR
+```{r}
+
 binding.x.train<-binding.train%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,acd_logp,acd_logd,qed_weighted) # 59%
 binding.modelsvr<-svm(y=binding.y.train,x=binding.x.train)
 binding.predict.svr <-predict(binding.modelsvr,binding.x.train)
@@ -185,9 +178,12 @@ svrPrediction.tunedRMSE <-sqrt(mean(binding.modelsvr.error.tuned^2))
 print (svrPrediction.tunedRMSE)#
 svrPrediction.tunedMAE <-mean(abs(binding.predict.svr.tuned-binding.train$standard_value))
 print (svrPrediction.tunedMAE)#
+```
 
 
-################################BAYES############################################
+# BAYES
+```{r}
+
 samp <- sample(nrow(binding.data), 0.6 * nrow(binding.data))
 binding.train <- binding.data[samp, ]#744
 binding.test <- binding.data[-samp, ]#497
@@ -218,8 +214,12 @@ print (binding.hc.PredictionMAE)#2.53
 
 
 cbind(predicted=binding.hc.predict,actual=binding.test.net$standard_value)
+```
 
-###########################Multiple Linear regression##############################
+
+# Multiple Linear regression
+```{r}
+
 plot(log(binding.train$standard_value))
 
 binding.lin.reg <- lm(log(standard_value+1) ~ mw_freebase +  psa + acd_most_apka + acd_most_bpka + hba +
@@ -242,8 +242,11 @@ binding.lin.reg.RMSE <- sqrt(mean((binding.pred.lin-binding.test$standard_value)
 print(binding.lin.reg.RMSE)
 binding.lin.reg.MAE <- mean(abs(binding.pred.lin-binding.test$standard_value))
 print(binding.lin.reg.MAE)
+```
 
-################################# Neural Networks ###################################
+
+# Neural Networks 
+```{r}
 
 binding.data.NN<-binding.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,rtb,mw_monoisotopic, aromatic_rings,full_mwt,standard_value) # 76%
 
@@ -329,9 +332,12 @@ mean(binding.cv.NN.error)
 boxplot(binding.cv.NN.error,xlab='MSE NN CV',col='green',
         border='blue',names='CV error (MSE)',
         main='CV error (MSE) for NN',horizontal=TRUE)
+```
 
 
-######################################TOTAL#######################################
+# TOTAL
+```{r}
+
 binding.accuracy <- data.frame(Method = c("Random Forest","SVR","HC.Bayes","SVR Tuned","Random forest Tuned","Multiple Linear Regression","Neural Networks"),
                        RMSE   = c(rf.predction.RMSE,binding.svrPredictionRMSE,binding.hc.PredictionRMSE,svrPrediction.tunedRMSE,binding.rf.Prediction.tunedRMSE,binding.lin.reg.RMSE,mean(binding.cv.NN.error)),
                        MAE    = c(rf.predction.MAE,binding.svrPredictionMAE,binding.hc.PredictionMAE,svrPrediction.tunedMAE,binding.rf.Prediction.tunedMAE,binding.lin.reg.MAE,0)) 
@@ -347,9 +353,11 @@ grid.table(binding.accuracy)
 png("images/Binding.png", height = 40*nrow(binding.accuracy), width = 100*ncol(binding.accuracy))
 grid.table(binding.accuracy)
 dev.off()
+```
 
 
-######################################OUTROS#######################################
+# OUTROS
+```{r}
 
 ###rf Cross validation 2
 binding.rf.cv <- rf.crossValidation(binding.rf.mdl, binding.x.train, p=0.60, n=10, ntree=1500)# segunda versao cv
@@ -357,4 +365,7 @@ print(binding.rf.cv)
 
 binding.rf.cv.tuned <- rf.crossValidation(binding.rf.mdl.tuned, binding.x.train, p=0.10, n=10, ntree=1500)# segunda versao cv
 print(binding.rf.cv.tuned)
+```
+
+
 

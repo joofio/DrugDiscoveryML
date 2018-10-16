@@ -1,6 +1,6 @@
 ---
-title: "aqueous Solubility"
-author: "João ALmeida"
+title: "Aqueous Solubility"
+author: "João Almeida"
 date: "16 de Outubro de 2018"
 output: html_document
 ---
@@ -12,8 +12,8 @@ aqsolubil.data<-data%>%filter(description=='Aqueous solubility')
 aqsolubil.data<-aqsolubil.data%>%filter(published_units!='mg ml-1')#só nos nulls
 ```
 
-# checking value to predict 
-```{r}
+
+```{r checking value to predict}
 hist(aqsolubil.data$standard_value)
 var(aqsolubil.data$standard_value)
 mean(aqsolubil.data$standard_value)
@@ -46,8 +46,7 @@ aqsolubil.rf.pred<-predict(aqsolubil.rf.mdl,newdata=aqsolubil.rf.test)
 ```
 
 
-### plot results and prediction evaluation
-```{r}
+```{r plot results and prediction evaluation}
 plot(aqsolubil.rf.pred,aqsolubil.rf.test$standard_value)
 abline(0,1,col="blue")
 mean(aqsolubil.rf.pred)
@@ -56,8 +55,7 @@ hist(aqsolubil.rf.pred)
 var(aqsolubil.rf.pred)
 ```
 
-### MSE and MAE formulation
-```{r}
+```{r MSE and MAE formulation}
 rf.PredictionRMSE<-mean((aqsolubil.rf.pred-aqsolubil.rf.test$standard_value)^2) #1.23
 print(rf.PredictionRMSE)
 rf.PredictionMAE<-mean(abs(aqsolubil.rf.pred-aqsolubil.rf.test$standard_value))
@@ -66,10 +64,9 @@ print(rf.PredictionMAE)
 ```
 
 
-## tuning rf
-```{r}
+```{r tuning rf}
 aqsolubil.rf.mdl.tuned<-tuneRF(aqsolubil.x.rf.train,aqsolubil.y.rf.train,mtryStart = 3,ntreeTry = 1500, improve = 0.01,doBest = TRUE)
-
+help("tuneRF")
 aqsolubil.pred.tuned<-predict(aqsolubil.rf.mdl.tuned,aqsolubil.rf.test)
 
 plot(aqsolubil.pred.tuned,aqsolubil.rf.test$standard_value)
@@ -85,7 +82,6 @@ mean(aqsolubil.pred.tuned)
 median(aqsolubil.pred.tuned)
 hist(aqsolubil.pred.tuned)
 ```
-
 
 # SVR
 
@@ -104,10 +100,10 @@ aqsolubil.x.svr.train<-aqsolubil.svr.train%>%select(-standard_value) # 68%
 aqsolubil.y.svr.train<-aqsolubil.svr.train$standard_value
 ```
 
-## 
+
 ```{r Creating model}
 aqsolubil.modelsvr<-svm(y=aqsolubil.y.svr.train,x=aqsolubil.x.svr.train)
-aqsolubil.predict.svr <-predict(aqsolubil.modelsvr,aqsolubil.x.svr.train)
+aqsolubil.predict.svr <-predict(aqsolubil.modelsvr,aqsolubil.x.svr.test)
 
 print(aqsolubil.modelsvr)
 
@@ -120,7 +116,7 @@ points(aqsolubil.predict.svr,col="Green")
 aqsolubil.modelsvr.error <- aqsolubil.svr.train$standard_value-aqsolubil.predict.svr
 aqsolubil.svrPredictionRMSE <-sqrt(mean(aqsolubil.modelsvr.error^2))
 print (aqsolubil.svrPredictionRMSE)#1.14
-aqsolubil.svrPredictionMAE<-mean(abs(aqsolubil.predict.svr-aqsolubil.svr.train$standard_value))
+aqsolubil.svrPredictionMAE<-mean(abs(aqsolubil.predict.svr-aqsolubil.svr.test$standard_value))
 print (aqsolubil.svrPredictionMAE)
 
 ```
@@ -156,8 +152,7 @@ print(svrPrediction.tunedMAE)
 
 # BAYES
 
-## selecting data
-```{r}
+```{r selecting data bayes}
 aqsolubil.bayes.data<-aqsolubil.data%>%select(full_mwt,mw_freebase,psa,acd_most_apka,hba,hbd,acd_logp,acd_logd,rtb,acd_most_bpka,mw_monoisotopic,aromatic_rings,standard_value) 
 aqsolubil.bayes.data<-drop_na(aqsolubil.bayes.data)
 
@@ -169,18 +164,15 @@ aqsolubil.bayes.test <- aqsolubil.bayes.data[-samp, ]#497
 
 ```
 
-## create model
-```{r}
+```{r create model bayes}
 aqsolubil.hc.bayes <- hc(aqsolubil.bayes.train, debug=TRUE)#hill climbing
 ```
 
-## plot network
-```{r}
+```{r plot network}
 plot(aqsolubil.hc.bayes)
 ```
 
-## fit the network with the data itself
-```{r}
+```{r fit the network with the data itself}
 aqsolubil.hc.fit <- bn.fit(aqsolubil.hc.bayes, aqsolubil.bayes.train)
 
 aqsolubil.hc.predict <-predict(aqsolubil.hc.fit,"standard_value",aqsolubil.bayes.test)
@@ -191,8 +183,7 @@ points(aqsolubil.bayes.test$standard_value,col="Red")
 ```
 
 
-## error
-```{r}
+```{r error}
 aqsolubil.modelhc.error <- aqsolubil.bayes.test$standard_value-aqsolubil.hc.predict
 aqsolubil.hc.PredictionRMSE <-sqrt(mean(aqsolubil.modelhc.error^2))
 print (aqsolubil.hc.PredictionRMSE)#1.91
@@ -204,8 +195,7 @@ print (aqsolubil.hc.PredictionMAE)#1.38
 
 # Multiple Linear regression
 
-## selecting data
-```{r}
+```{r selecting data mlr}
 aqsolubil.lin.data<-aqsolubil.data%>%select(mw_freebase, psa, acd_most_apka, acd_most_bpka, hba, hbd, rtb, mw_monoisotopic, aromatic_rings, full_mwt,standard_value) # 68%
 aqsolubil.lin.data<-drop_na(aqsolubil.lin.data)
 
@@ -216,15 +206,15 @@ aqsolubil.lin.train <- aqsolubil.lin.data[samp, ]#744
 aqsolubil.lin.test <- aqsolubil.lin.data[-samp, ]#497
 ```
 
-## evaluation
-```{r}
+
+```{r evaluation mlr}
 plot(log(aqsolubil.lin.train$standard_value+12))
 
 aqsolubil.lin.reg <- lm(log(standard_value+12) ~ mw_freebase +  psa + acd_most_apka + acd_most_bpka + hba + hbd + rtb+mw_monoisotopic+aromatic_rings+full_mwt, data = aqsolubil.lin.train)
 ```
 
-## Inspect the model
-```{r}
+
+```{r Inspect the model}
 summary(aqsolubil.lin.reg)
 
 aqsolubil.pred.lin <- exp(predict(aqsolubil.lin.reg,aqsolubil.lin.test))-11
@@ -235,16 +225,14 @@ aqsolubil.lin.reg.MAE <- mean(abs(aqsolubil.pred.lin-aqsolubil.lin.test$standard
 print(aqsolubil.lin.reg.MAE)
 ```
 
-
 # Neural Networks 
 
 ```{r}
 aqsolubil.data.NN<-aqsolubil.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,rtb,mw_monoisotopic, aromatic_rings,full_mwt,standard_value) # 76%
 ```
 
-#check if no na is available
 
-```{r}
+```{r check if no na is available}
 apply(aqsolubil.data.NN,2,function(x) sum(is.na(x)))#fun?
 aqsolubil.data.NN<-aqsolubil.data.NN%>%drop_na()
 ```
@@ -298,8 +286,8 @@ plot(aqsolubil.test.NN$standard_value,aqsolubil.pred.NN$net.result,col="blue")
 abline(0,1,lwd=2)
 ```
 
-# function for cross-validation Neural Network
-```{r}
+
+```{r function for cross-validation Neural Network}
 aqsolubil.cv.NN.error<-NULL
 k<-10
 

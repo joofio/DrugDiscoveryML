@@ -4,71 +4,69 @@ author: "João Almeida"
 date: "16 de Outubro de 2018"
 output: html_document
 ---
-
+```{r seed and data prepare}
 set.seed(123)
 
 logp.data<-data%>%filter(assay_id==16590|assay_id==20401)#73
+```
 
-#remove NA
-logp.data<-logp.data%>%filter(!is.na(mw_freebase))
-logp.data<-logp.data%>%filter(!is.na(psa))
-logp.data<-logp.data%>%filter(!is.na(acd_most_apka))
-logp.data<-logp.data%>%filter(!is.na(hba))
-logp.data<-logp.data%>%filter(!is.na(hbd))
-logp.data<-logp.data%>%filter(!is.na(acd_logp))
-logp.data<-logp.data%>%filter(!is.na(acd_logd))
-logp.data<-logp.data%>%filter(!is.na(rtb))
-logp.data<-logp.data%>%filter(!is.na(acd_most_bpka))
-logp.data<-logp.data%>%filter(!is.na(mw_monoisotopic))
-logp.data<-logp.data%>%filter(!is.na(aromatic_rings))
-logp.data<-logp.data%>%filter(!is.na(full_mwt))
+```{r checking value to predict}
+hist(logp.data$standard_value)
+var(logp.data$standard_value)
+mean(logp.data$standard_value)
+median(logp.data$standard_value)
+```
 
-logp.data<-logp.data%>%filter(!is.na(standard_value))
+# random forest
 
-logp.data<-logp.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,rtb,mw_monoisotopic, aromatic_rings,full_mwt,standard_value) # 76%
-logp.data<-logp.data[!duplicated(logp.data),]
+logp random forest terá mlhr sucesso com 7 variaveis
+[1] "acd_most_apka"  "acd_most_bpka"  "aromatic_rings" "psa"           
+[5] "hbd"            "rtb"            "hba"
+```{r selecting data rf}
 
+logp.rf.data<-logp.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,rtb,mw_monoisotopic, aromatic_rings,full_mwt,standard_value) # 76%
+logp.rf.data<-drop_na(logp.rf.data)
 
-#################################random forest############################################
-samp <- sample(nrow(logp.data), 0.6 * nrow(logp.data))
-logp.train <- logp.data[samp, ]#744
-logp.test <- logp.data[-samp, ]#497
+logp.rf.data<-logp.rf.data[!duplicated(logp.rf.data),]
 
-#logp random forest terá mlhr sucesso com 7 variaveis
-#[1] "acd_most_apka"  "acd_most_bpka"  "aromatic_rings" "psa"           
-#[5] "hbd"            "rtb"            "hba"
-logp.x.train<-logp.train%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,rtb,mw_monoisotopic, aromatic_rings,full_mwt) # 76%
+samp <- sample(nrow(logp.rf.data), 0.6 * nrow(logp.rf.data))
+logp.rf.train <- logp.rf.data[samp, ]#744
+logp.rf.test <- logp.rf.data[-samp, ]#497
 
-logp.x.train<-logp.train%>%select( psa, acd_most_bpka, hba,hbd,rtb, aromatic_rings) # 76%
-logp.y.train<-logp.train$standard_value
+logp.x.rf.train<-logp.rf.train%>%select(-standard_value) # 76%
+logp.y.rf.train<-logp.rf.train$standard_value
+```
 
 
-logp.rf.mdl <-randomForest(logp.y.train,x=logp.x.train,mtry=5,ntree=1500)
+```{r create model rf}
+
+logp.rf.mdl <-randomForest(logp.y.rf.train,x=logp.x.rf.train,mtry=5,ntree=1500)
 print(logp.rf.mdl)
 varImpPlot(logp.rf.mdl)
 importance(logp.rf.mdl)
 
-logp.pred<-predict(logp.rf.mdl,newdata=logp.test)
-plot(logp.pred,logp.test$standard_value)
+logp.rf.pred<-predict(logp.rf.mdl,newdata=logp.rf.test)
+plot(logp.rf.pred,logp.rf.test$standard_value)
 abline(0,1,col="blue")
 ###MSE propriamente dito, e n previsto como no print rf
-logp.rf.PredictionRMSE<-mean((logp.pred-logp.test$standard_value)^2) 
+logp.rf.PredictionRMSE<-mean((logp.rf.pred-logp.rf.test$standard_value)^2) 
 print(logp.rf.PredictionRMSE)
-logp.rf.PredictionMAE<-mean(abs(logp.pred-logp.test$standard_value)) 
+logp.rf.PredictionMAE<-mean(abs(logp.rf.pred-logp.rf.test$standard_value)) 
 print(logp.rf.PredictionMAE)
 
+```
 
-######TUNERF############
-logp.rf.mdl.tuned<-tuneRF(logp.x.train,logp.y.train,mtryStart = 3,ntreeTry = 1500, improve = 0.1,doBest = TRUE)
+```{r TUNERF}
+logp.rf.mdl.tuned<-tuneRF(logp.x.rf.train,logp.y.rf.train,mtryStart = 3,ntreeTry = 1500, improve = 0.1,doBest = TRUE)
 
-logp.pred.tuned<-predict(logp.rf.mdl.tuned,newdata=logp.test)
+logp.pred.rf.tuned<-predict(logp.rf.mdl.tuned,newdata=logp.rf.test)
 
-plot(logp.pred.tuned,logp.test$standard_value)
+plot(logp.pred.rf.tuned,logp.rf.test$standard_value)
 abline(0,1,col="blue")
 ###MSE propriamente dito, e n previsto como no print rf
-logp.rf.tuned.PredictionRMSE<-mean((logp.pred.tuned-logp.test$standard_value)^2) 
+logp.rf.tuned.PredictionRMSE<-mean((logp.pred.rf.tuned-logp.rf.test$standard_value)^2) 
 print(logp.rf.tuned.PredictionRMSE)
-logp.rf.tuned.PredictionMAE<-mean(abs(logp.pred.tuned-logp.test$standard_value)) 
+logp.rf.tuned.PredictionMAE<-mean(abs(logp.pred.rf.tuned-logp.rf.test$standard_value)) 
 print(logp.rf.tuned.PredictionMAE)
 
 # Manual Search
@@ -77,7 +75,7 @@ for (ntree in c(2000, 2500)) {
   for (mtry in c(8,9)){
     for (nodesize in c(9)){
   set.seed(123)
-  fit <- rf.crossValidation(logp.rf.mdl, logp.x.train, p=0.60, n=10, ntree=ntree, mtry=mtry, nodesize=nodesize)# segunda versao cv
+  fit <- rf.crossValidation(logp.rf.mdl, logp.x.rf.train, p=0.60, n=10, ntree=ntree, mtry=mtry, nodesize=nodesize)# segunda versao cv
   key <- toString(ntree)
   key2 <- toString(mtry)
   key3 <- toString(nodesize)
@@ -93,42 +91,75 @@ modellist$`2500--9--9`
 results <- resamples(modellist)
 summary(modellist)
 dotplot(results)
+```
 
-#################################SVR########################################
-logp.modelsvr<-svm(y=logp.y.train,x=logp.x.train)
-logp.predict.svr <-predict(logp.modelsvr,logp.x.train)
+
+# SVR 
+```{r selecting data rf}
+
+logp.svr.data<-logp.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,rtb,mw_monoisotopic, aromatic_rings,full_mwt,standard_value) # 76%
+logp.svr.data<-drop_na(logp.svr.data)
+
+logp.svr.data<-logp.svr.data[!duplicated(logp.svr.data),]
+
+samp <- sample(nrow(logp.svr.data), 0.6 * nrow(logp.svr.data))
+logp.svr.train <- logp.svr.data[samp, ]#744
+logp.svr.test <- logp.svr.data[-samp, ]#497
+
+logp.x.svr.train<-logp.svr.train%>%select(-standard_value) # 76%
+logp.y.svr.train<-logp.svr.train$standard_value
+
+logp.x.svr.test<-logp.svr.test%>%select(-standard_value) # 76%
+logp.y.svr.test<-logp.svr.test$standard_value
+
+```
+
+
+```{r}
+
+logp.modelsvr<-svm(y=logp.y.svr.train,x=logp.x.svr.train)
+logp.predict.svr <-predict(logp.modelsvr,logp.x.svr.train)
 
 print(logp.modelsvr)
 
-plot(logp.train$standard_value)
+plot(logp.svr.train$standard_value)
 points(logp.predict.svr,col="Red")
-logp.modelsvr.error <- logp.train$standard_value-logp.predict.svr
+logp.modelsvr.error <- logp.svr.train$standard_value-logp.predict.svr
 logp.svrPredictionRMSE <-sqrt(mean(logp.modelsvr.error^2))
 print (logp.svrPredictionRMSE)#1.26
-logp.svrPredictionMAE <-mean(abs(logp.predict.svr-logp.train$standard_value)) 
+logp.svrPredictionMAE <-mean(abs(logp.predict.svr-logp.svr.train$standard_value)) 
 print (logp.svrPredictionMAE)#0.78
+```
 
 
-###tune SVR
+```{r}
+
 tc <- tune.control(cross = 10)
 
-logp.svr.tunedresult<-tune(svm,train.x=logp.x.train,train.y=logp.y.train,ranges=list(epsilon=seq(0,1,0.1),cost=2^(2:9)), tunecontrol = tc)
-#epsilon cost
-#0.1   32 
-#voltar a correr o tunedrsult com o seq de 0-0.1, com 0.01 e cost aumentar
-logp.svr.tunedresult<-tune(svm,train.x=logp.x.train,train.y=logp.y.train,ranges=list(epsilon=seq(0,0.1,0.01),cost=2^(2:7)), tunecontrol = tc)
+logp.svr.tunedresult<-tune(svm,train.x=logp.x.svr.train,train.y=logp.y.svr.train,ranges=list(epsilon=seq(0,1,0.1),cost=2^(2:9)), tunecontrol = tc)
+```
+epsilon cost
+0.1   32 
+voltar a correr o tunedrsult com o seq de 0-0.1, com 0.01 e cost aumentar
+```{r}
+logp.svr.tunedresult<-tune(svm,train.x=logp.x.svr.train,train.y=logp.y.svr.train,ranges=list(epsilon=seq(0,0.1,0.01),cost=2^(2:7)), tunecontrol = tc)
 
 print(logp.svr.tunedresult)
 plot(logp.svr.tunedresult)
 
-logp.predict.svr.tuned <-predict(logp.svr.tunedresult$best.model,logp.x.train)
-logp.modelsvr.error.tuned <- logp.train$standard_value-logp.predict.svr.tuned
+logp.predict.svr.tuned <-predict(logp.svr.tunedresult$best.model,logp.x.svr.test)
+logp.modelsvr.error.tuned <- logp.svr.test$standard_value-logp.predict.svr.tuned
+
 svrPrediction.tuned.RMSE <-sqrt(mean(logp.modelsvr.error.tuned^2))
 print (svrPrediction.tuned.RMSE)#0.78
 
-svrPrediction.tuned.MAE <-mean(abs(logp.predict.svr.tuned-logp.train$standard_value)) 
+svrPrediction.tuned.MAE <-mean(abs(logp.predict.svr.tuned-logp.svr.test$standard_value)) 
 print (svrPrediction.tuned.MAE)#0.78
+```
 
+
+
+```{r}
 
 #################################SVR2########################################
 logp.x.train<-logp.train%>%select(acd_logd, acd_logp,acd_most_apka, mw_freebase,mw_monoisotopic, aromatic_rings,full_mwt) # 76%
@@ -145,172 +176,186 @@ print (logp.svrPredictionRMSE)#1.26
 logp.svrPredictionMAE <-mean(abs(logp.predict.svr-logp.train$standard_value)) 
 print (logp.svrPredictionMAE)#0.78
 
+```
 
+```{r}
 ###tune SVR
 tc <- tune.control(cross = 10)
 
-logp.svr.tunedresult<-tune(svm,train.x=logp.x.train,train.y=logp.y.train,ranges=list(epsilon=seq(0,1,0.1),cost=2^(2:9)), tunecontrol = tc)
+logp.svr.tunedresult<-tune(svm,train.x=logp.x.svr.train,train.y=logp.y.svr.train,ranges=list(epsilon=seq(0,1,0.1),cost=2^(2:9)), tunecontrol = tc)
  
 #voltar a correr o tunedrsult com o seq de 0-0.1, com 0.01 e cost aumentar
-logp.svr.tunedresult<-tune(svm,train.x=logp.x.train,train.y=logp.y.train,ranges=list(epsilon=seq(0,0.2,0.025),cost=2^(2:7)), tunecontrol = tc, na.fail=na.omit)
+logp.svr.tunedresult<-tune(svm,train.x=logp.x.svr.train,train.y=logp.y.svr.train,ranges=list(epsilon=seq(0,0.2,0.025),cost=2^(2:7)), tunecontrol = tc, na.fail=na.omit)
 
 print(logp.svr.tunedresult)
 plot(logp.svr.tunedresult)
 
-logp.predict.svr.tuned <-predict(logp.svr.tunedresult$best.model,logp.x.train)
-logp.modelsvr.error.tuned <- logp.train$standard_value-logp.predict.svr.tuned
+logp.predict.svr.tuned <-predict(logp.svr.tunedresult$best.model,logp.x.svr.test)
+logp.modelsvr.error.tuned <- logp.test$standard_value-logp.predict.svr.tuned
 svrPrediction.tuned.RMSE <-sqrt(mean(logp.modelsvr.error.tuned^2))
 print (svrPrediction.tuned.RMSE)#0.66
 
-svrPrediction.tuned.MAE <-mean(abs(logp.predict.svr.tuned-logp.train$standard_value)) 
+svrPrediction.tuned.MAE <-mean(abs(logp.predict.svr.tuned-logp.test$standard_value)) 
 print (svrPrediction.tuned.MAE)#0.38
-
-################################BAYES############################################
-samp <- sample(nrow(logp.data), 0.6 * nrow(logp.data))
-logp.train <- logp.data[samp, ]#744
-logp.test <- logp.data[-samp, ]#497
-
-logp.train.net<-logp.train%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,rtb,mw_monoisotopic, aromatic_rings,full_mwt,standard_value) # 76%
-logp.test.net<-logp.test%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,rtb,mw_monoisotopic, aromatic_rings,full_mwt,standard_value) # 76%
+```
 
 
-logp.hc.net <- hc(logp.train.net, debug=TRUE)#hill clibing
+# BAYES
+
+```{r selecting data bayes}
+
+logp.bayes.data<-logp.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,rtb,mw_monoisotopic, aromatic_rings,full_mwt,standard_value) # 76%
+logp.bayes.data<-drop_na(logp.bayes.data)
+
+logp.bayes.data<-logp.bayes.data[!duplicated(logp.bayes.data),]
+
+samp <- sample(nrow(logp.bayes.data), 0.6 * nrow(logp.bayes.data))
+logp.bayes.train <- logp.bayes.data[samp, ]#744
+logp.bayes.test <- logp.bayes.data[-samp, ]#497
+
+```
+
+
+```{r}
+
+logp.hc.net <- hc(logp.bayes.train, debug=TRUE)#hill clibing
 
 # plot network
 plot(logp.hc.net)
 
 # fit the network with the data itself
-logp.hc.fit <- bn.fit(logp.hc.net, logp.train.net)
+logp.hc.fit <- bn.fit(logp.hc.net, logp.bayes.train)
 
-logp.hc.predict <-predict(logp.hc.fit,"standard_value",logp.test.net)
+logp.hc.predict <-predict(logp.hc.fit,"standard_value",logp.bayes.test)
 
-table(logp.hc.predict,logp.test.net$standard_value)
+table(logp.hc.predict,logp.bayes.test$standard_value)
 plot(logp.hc.predict)
-points(logp.test.net$standard_value,col="Red")
+points(logp.bayes.test$standard_value,col="Red")
 
-logp.modelhc.error <- logp.test.net$standard_value-logp.hc.predict
+logp.modelhc.error <- logp.bayes.test$standard_value-logp.hc.predict
 logp.hc.PredictionRMSE <-sqrt(mean(logp.modelhc.error^2))
 print (logp.hc.PredictionRMSE)#1.605
 
-logp.hc.PredictionMAE <-mean(abs(logp.hc.predict-logp.test.net$standard_value))
+logp.hc.PredictionMAE <-mean(abs(logp.hc.predict-logp.bayes.test$standard_value))
 print (logp.hc.PredictionMAE)#1.605
 
-cbind(predicted=logp.hc.predict,actual=logp.test.net$standard_value)
+cbind(predicted=logp.hc.predict,actual=logp.bayes.test$standard_value)
+```
 
-###########################multivariate Linear regression##############################
-plot(log(logp.train$standard_value))#"test"
-logp.data<-data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,acd_logp,acd_logd,heavy_atoms,rtb,hba_lipinski,mw_monoisotopic, aromatic_rings,full_mwt,mw_monoisotopic,hbd_lipinski, standard_value) 
-logp.data<-data%>%filter(assay_id==16590|assay_id==20401)#73
 
-logp.data<-logp.data%>%filter(!is.na(mw_freebase))
-logp.data<-logp.data%>%filter(!is.na(psa))
-logp.data<-logp.data%>%filter(!is.na(acd_most_apka))
-logp.data<-logp.data%>%filter(!is.na(acd_most_bpka))
-logp.data<-logp.data%>%filter(!is.na(hba))
-logp.data<-logp.data%>%filter(!is.na(hbd))
-logp.data<-logp.data%>%filter(!is.na(acd_logp))
-logp.data<-logp.data%>%filter(!is.na(acd_logd))
-logp.data<-logp.data%>%filter(!is.na(rtb))
-logp.data<-logp.data%>%filter(!is.na(heavy_atoms))
-logp.data<-logp.data%>%filter(!is.na(hba_lipinski))
-logp.data<-logp.data%>%filter(!is.na(hbd_lipinski))
-logp.data<-logp.data%>%filter(!is.na(mw_monoisotopic))
-logp.data<-logp.data%>%filter(!is.na(aromatic_rings))
-logp.data<-logp.data%>%filter(!is.na(full_mwt))
+# multivariate Linear regression
 
-logp.data<-logp.data%>%filter(!is.na(standard_value))
-samp <- sample(nrow(logp.data), 0.6 * nrow(logp.data))
-logp.train <- logp.data[samp, ]#744
-logp.test <- logp.data[-samp, ]#497
+```{r selecting data lin}
 
-logp.lin.reg <- lm(log(standard_value) ~ mw_freebase +  psa + acd_most_apka + acd_most_bpka + hba +
-                          hbd + rtb+acd_logp+acd_logd+heavy_atoms+hba_lipinski+mw_monoisotopic+aromatic_rings+full_mwt+mw_monoisotopic+hbd_lipinski, data = logp.train )
+logp.lin.data<-logp.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,acd_logp,acd_logd,heavy_atoms,rtb,hba_lipinski,mw_monoisotopic, aromatic_rings,full_mwt,mw_monoisotopic,hbd_lipinski, standard_value) 
+
+logp.lin.data<-drop_na(logp.lin.data)
+
+logp.lin.data<-logp.lin.data[!duplicated(logp.lin.data),]
+
+samp <- sample(nrow(logp.lin.data), 0.6 * nrow(logp.lin.data))
+logp.lin.train <- logp.lin.data[samp, ]#744
+logp.lin.test <- logp.lin.data[-samp, ]#497
+
+logp.x.lin.train<-logp.lin.train%>%select(-standard_value) # 76%
+logp.y.lin.train<-logp.lin.train$standard_value
+
+logp.x.lin.test<-logp.lin.test%>%select(-standard_value) # 76%
+logp.y.lin.test<-logp.lin.test$standard_value
+
+plot(log(logp.lin.train$standard_value+1))#"test"
+
+
+```
+
+
+```{r}
+
+logp.lin.reg <- lm(log(standard_value+1) ~ mw_freebase +  psa + acd_most_apka + acd_most_bpka + hba +
+hbd +rtb+acd_logp+acd_logd+heavy_atoms+hba_lipinski+mw_monoisotopic+aromatic_rings+full_mwt+mw_monoisotopic+hbd_lipinski, data = logp.lin.train )
 
 # Inspect the model
 summary(logp.lin.reg)
 #r-squared 12% ou variancia explicada pelos preditores
 #PR(>|t|) é o p e por isso quanto menor mlhr (especialmente menor que 0,05)
 
-logp.pred.lin <- exp(predict(logp.lin.reg,logp.test))
+logp.pred.lin <- exp(predict(logp.lin.reg,logp.lin.test))
 
-logp.lin.reg.RMSE <- sqrt(mean((logp.pred.lin-logp.test$standard_value)^2))
+logp.lin.reg.RMSE <- sqrt(mean((logp.pred.lin-logp.lin.test$standard_value)^2))
 print(logp.lin.reg.RMSE)
-logp.lin.reg.MAE <- mean(abs(logp.pred.lin-logp.test$standard_value))
+logp.lin.reg.MAE <- mean(abs(logp.pred.lin-logp.lin.test$standard_value))
 print(logp.lin.reg.MAE)
+```
 
-################################# Neural Networks ###################################
-logp.data<-data%>%filter(assay_id==16590|assay_id==20401)#73
 
-#remove NA
-logp.data<-logp.data%>%filter(!is.na(mw_freebase))
-logp.data<-logp.data%>%filter(!is.na(psa))
-logp.data<-logp.data%>%filter(!is.na(acd_most_apka))
-logp.data<-logp.data%>%filter(!is.na(hba))
-logp.data<-logp.data%>%filter(!is.na(hbd))
-logp.data<-logp.data%>%filter(!is.na(acd_logp))
-logp.data<-logp.data%>%filter(!is.na(acd_logd))
-logp.data<-logp.data%>%filter(!is.na(rtb))
-logp.data<-logp.data%>%filter(!is.na(acd_most_bpka))
-logp.data<-logp.data%>%filter(!is.na(mw_monoisotopic))
-logp.data<-logp.data%>%filter(!is.na(aromatic_rings))
-logp.data<-logp.data%>%filter(!is.na(full_mwt))
+# Neural Networks 
+```{r selecting data NNs}
 
-logp.data<-logp.data%>%filter(!is.na(standard_value))
-logp.data.NN<-logp.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,rtb,mw_monoisotopic, aromatic_rings,full_mwt,standard_value) # 76%
+logp.NN.data<-logp.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,acd_logp,acd_logd,heavy_atoms,rtb,hba_lipinski,mw_monoisotopic, aromatic_rings,full_mwt,mw_monoisotopic,hbd_lipinski, standard_value) 
 
+logp.NN.data<-drop_na(logp.NN.data)
+
+logp.NN.data<-logp.NN.data[!duplicated(logp.NN.data),]
+```
+
+
+```{r}
 #check if no na is available
-apply(logp.data.NN,2,function(x) sum(is.na(x)))#fun?
+apply(logp.NN.data,2,function(x) sum(is.na(x)))#fun?
 
-
-logp.lm.fit<-glm(standard_value~.,data=logp.train.net)
+logp.lm.fit<-glm(standard_value~.,data=logp.bayes.train)
 
 summary(logp.lm.fit)
 
-logp.pr.lm<-predict(logp.lm.fit,logp.test.net)
-logp.MSE.lm<-sum((logp.pr.lm-logp.test.net$standard_value)^2)/nrow(logp.test)
+logp.pr.lm<-predict(logp.lm.fit,logp.bayes.test)
+logp.MSE.lm<-sum((logp.pr.lm-logp.bayes.test$standard_value)^2)/nrow(logp.bayes.test)
 print(logp.MSE.lm)
 
+logp.maxs<-apply(logp.NN.data,2,max)
+logp.mins<-apply(logp.NN.data,2,min)
 
+logp.scaled<-as.data.frame(scale(logp.NN.data,center=logp.mins,scale=logp.maxs-logp.mins))
 
-logp.maxs<-apply(logp.data.NN,2,max)
-logp.mins<-apply(logp.data.NN,2,min)
+logp.NN.train<-logp.scaled[samp,]
+logp.NN.test<-logp.scaled[-samp,]
 
-logp.scaled<-as.data.frame(scale(logp.data.NN,center=logp.mins,scale=logp.maxs-logp.mins))
-
-logp.train.NN<-logp.scaled[samp,]
-logp.test.NN<-logp.scaled[-samp,]
-
-logp.n<-names(logp.train.NN)
+logp.n<-names(logp.NN.train)
 logp.f<-as.formula(paste("standard_value ~",paste(logp.n[!logp.n %in% "standard_value"],collapse = " + ")))
-#o y~ n funciona no neuralnet, dai se fazer a formular fora
+```
 
-logp.NN.model<-neuralnet(logp.f,data=logp.train.NN,hidden=c(6,3),linear.output = TRUE)
-#algorithm did not converge in 1 of 1 repetition(s) within the stepmax 
-#increase stepmax  
+o y~ n funciona no neuralnet, dai se fazer a formular fora
+```{r}
+logp.NN.model<-neuralnet(logp.f,data=logp.NN.train,hidden=c(6,3),linear.output = TRUE)
+```
 
-#You can increase the stepmax and thereby giving it more time to converge.
-#The other option is to adjust the threshold parameter. 
-#By default its value is 0.01. Try increasing it to 0.1/0.5. 
-#If you change the lifesign to 'full' you can see the threshold values. 
-#Keep your threshold value lower than the one you see at the last step. 
-#Remember, higher the threshold, lower the accuracy of the model
+algorithm did not converge in 1 of 1 repetition(s) within the stepmax 
+increase stepmax  
 
+You can increase the stepmax and thereby giving it more time to converge.
+The other option is to adjust the threshold parameter. 
+By default its value is 0.01. Try increasing it to 0.1/0.5. 
+If you change the lifesign to 'full' you can see the threshold values. 
+Keep your threshold value lower than the one you see at the last step. 
+Remember, higher the threshold, lower the accuracy of the model
+
+```{r}
 plot(logp.NN.model)
 
-str(logp.test.NN[,1:10])#retirar o standard_value
-logp.pred.NN<-compute(logp.NN.model,logp.test.NN[,1:10])
+logp.pred.NN<-compute(logp.NN.model,logp.NN.test%>%select(-standard_value))
 
-logp.pred.NN_<-logp.pred.NN$net.result*(max(logp.data.NN$standard_value)-min(logp.data.NN$standard_value))+min(logp.data.NN$standard_value)
-logp.pred.NN.response<-(logp.test.NN$standard_value)*(max(logp.data.NN$standard_value)-min(logp.data.NN$standard_value))+min(logp.data.NN$standard_value)
-
+logp.pred.NN_<-logp.pred.NN$net.result*(max(logp.NN.data$standard_value)-min(logp.NN.data$standard_value))+min(logp.NN.data$standard_value)
+logp.pred.NN.response<-(logp.NN.test$standard_value)*(max(logp.NN.data$standard_value)-min(logp.NN.data$standard_value))+min(logp.NN.data$standard_value)
 
 
-logp.nn.RMSE<-sum((logp.pred.NN.response-logp.pred.NN_)^2)/nrow(logp.test.NN)
+
+logp.nn.RMSE<-sum((logp.pred.NN.response-logp.pred.NN_)^2)/nrow(logp.NN.test)
 print(logp.nn.RMSE)
 
-plot(logp.test.NN$standard_value,logp.pred.NN$net.result,col="blue")
+plot(logp.NN.test$standard_value,logp.pred.NN$net.result,col="blue")
 abline(0,1,lwd=2)
+```
 
+```{r cv NN}
 
 #function for cross-validation Neural Network.
 logp.cv.NN.error<-NULL
@@ -341,13 +386,14 @@ mean(logp.cv.NN.error)
 boxplot(logp.cv.NN.error,xlab='MSE NN CV',col='green',
         border='blue',names='CV error (MSE)',
         main='CV error (MSE) for NN',horizontal=TRUE)
-
-######################################TOTAL#######################################
-logp.accuracy <- data.frame(Method = c("Random Forest","SVR","HC.Bayes","SVR Tuned","Random forest Tuned","Multiple Linear Regression"),
-                               RMSE   = c(logp.rf.PredictionRMSE,logp.svrPredictionRMSE,logp.hc.PredictionRMSE,svrPrediction.tuned.RMSE,logp.rf.tuned.PredictionRMSE,logp.lin.reg.RMSE),
-                               MAE    = c(logp.rf.PredictionMAE,logp.svrPredictionMAE,logp.hc.PredictionMAE,svrPrediction.tuned.MAE,logp.rf.tuned.PredictionMAE,logp.lin.reg.MAE)) 
+```
 
 
+#TOTAL
+```{r}
+logp.accuracy <- data.frame(Method = c("Random Forest","SVR","HC.Bayes","SVR Tuned","Random forest Tuned","Multiple Linear Regression", "Neural Networks"),
+                               RMSE   = c(logp.rf.PredictionRMSE,logp.svrPredictionRMSE,logp.hc.PredictionRMSE,svrPrediction.tuned.RMSE,logp.rf.tuned.PredictionRMSE,logp.lin.reg.RMSE,logp.nn.RMSE),
+                               MAE    = c(logp.rf.PredictionMAE,logp.svrPredictionMAE,logp.hc.PredictionMAE,svrPrediction.tuned.MAE,logp.rf.tuned.PredictionMAE,logp.lin.reg.MAE,0)) 
 
 # Round the values and print the table
 logp.accuracy$RMSE <- round(logp.accuracy$RMSE,2)
@@ -358,8 +404,11 @@ grid.table(logp.accuracy)
 png("images/logp.png", height = 40*nrow(logp.accuracy), width = 100*ncol(logp.accuracy))
 grid.table(logp.accuracy)
 dev.off()
+```
 
-################################### Cross Validation ##########################################
+
+# Cross Validation
+```{r}
 
 ###rf Cross validation 1
 logp.rf.cv1<-rfcv(trainy=logp.y.train,trainx=logp.x.train,cv.fold = 5)#1 versao CV
@@ -374,10 +423,10 @@ print(logp.rf.cv)#0.84
 
 logp.rf.cv.tuned <- rf.crossValidation(logp.rf.mdl.tuned, logp.x.train, p=0.10, n=10, ntree=1500)# segunda versao cv
 print(logp.rf.cv.tuned)
+```
 
-
-
-############CV TOTAL
+#CV TOTAL
+```{r}
 logp.accuracy.cv<-data.frame(Method=c("Random Forest CV10","Random Forest Tuned CV10","Neural Networks CV20","SVR Tuned CV10")
                              ,RMSE=c(mean(logp.rf.cv$y.rmse),mean(logp.rf.cv.tuned$y.rmse),mean(logp.cv.NN.error),svrPrediction.tuned.RMSE)
                              ,MAE=c(mean(logp.rf.cv$y.mae),mean(logp.rf.cv.tuned$y.mae),0,svrPrediction.tuned.MAE))
@@ -387,5 +436,4 @@ logp.accuracy.cv$MAE <- round(logp.accuracy.cv$MAE,2)
 
 
 print(logp.accuracy.cv)
-
-
+```
