@@ -1,3 +1,10 @@
+---
+title: "aqueous Solubility"
+author: "João ALmeida"
+date: "16 de Outubro de 2018"
+output: html_document
+---
+
 ```{r creating data file}
 set.seed(123)
 #Aqueous solubility
@@ -14,8 +21,7 @@ median(aqsolubil.data$standard_value)
 ```
 
 #Random Forest
-
-```{r selecting data}
+```{r selecting data rf}
 aqsolubil.rf.data<-aqsolubil.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,rtb,mw_monoisotopic, aromatic_rings,full_mwt,standard_value) # 68%
 aqsolubil.rf.data<-drop_na(aqsolubil.rf.data)
 
@@ -83,7 +89,7 @@ hist(aqsolubil.pred.tuned)
 
 # SVR
 
-```{r selecting data}
+```{r selecting data svr}
 aqsolubil.svr.data<-aqsolubil.data%>%select(full_mwt,mw_freebase,psa,acd_most_apka,hba,hbd,acd_logp,acd_logd,rtb,acd_most_bpka,mw_monoisotopic,aromatic_rings,standard_value) # 68%
 aqsolubil.svr.data<-drop_na(aqsolubil.svr.data)
 
