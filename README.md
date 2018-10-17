@@ -16,19 +16,19 @@ There are testing issues for logP, Protein Binding and Aqueous solubility
 
 The mean is -2.145955  
 The median is -2.25  
-![alt text](https://github.com/joofio/DrugDiscoveryML/blob/master/images/aqsolubil.png "Aqueous Solubility results")
+![alt text](/images/aqsolubil.png "Aqueous Solubility results")
 
 #### LogP 
 
 The mean of the y is 5.503537  
 The median is 5  
-![alt text](https://github.com/joofio/DrugDiscoveryML/blob/master/images/logp.png "LogP results")
+![alt text](/images/logp.png "LogP results")
 
 #### Binding energy
 
 The mean is 10.11311  
 The median is 11.2  
-![alt text](https://github.com/joofio/DrugDiscoveryML/blob/master/images/Binding.png "Binding Energy results")
+![alt text](/images/Binding.png "Binding Energy results")
 
 ### TODO
 * Bioavailability
