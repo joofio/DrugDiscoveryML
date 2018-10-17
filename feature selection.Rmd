@@ -4,10 +4,11 @@ author: "João Almeida"
 date: "16 de Outubro de 2018"
 output: html_document
 ---
-```{r}
+
+```{r test_feature}
 #feature selection
 print(names(data))
-
+library(reticulate)
 
 ###########1 of them
 feature.data<-data%>%filter(assay_id==16590|assay_id==20401)#logp
@@ -15,6 +16,11 @@ feature.data<-data%>%filter(assay_id==16590|assay_id==20401)#logp
 feature.data<-data%>%filter(description=='Aqueous solubility')#aqueous solubility
 
 feature.data<-data%>%filter(assay_id==225074)#Binding energy by using the equation deltaG obsd = -RT ln KD
+
+```
+
+
+```{r}
 ###########1 of the 2
 feature.data<-feature.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,acd_logp,acd_logd,heavy_atoms,rtb,hba_lipinski,mw_monoisotopic, aromatic_rings,full_mwt,mw_monoisotopic,hbd_lipinski, standard_value) 
 

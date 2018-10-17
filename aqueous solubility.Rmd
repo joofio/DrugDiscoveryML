@@ -21,6 +21,7 @@ median(aqsolubil.data$standard_value)
 ```
 
 #Random Forest
+features foram testes e avaliadas em *feature selection*
 ```{r selecting data rf}
 aqsolubil.rf.data<-aqsolubil.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,rtb,mw_monoisotopic, aromatic_rings,full_mwt,standard_value) # 68%
 aqsolubil.rf.data<-drop_na(aqsolubil.rf.data)
