@@ -1,0 +1,61 @@
+---
+title: "bioavailability"
+author: "João Almeida"
+date: "16 de Outubro de 2018"
+output: html_document
+---
+# Bioavailability
+```{r}
+set.seed(123)
+```
+
+#Aqueous solubility
+```{r}
+#1
+bioavail.data<-data%>%filter(description=='Bioavailability')
+#2
+bioavail.data<-data%>%filter(grepl('(Bioavailability)',description))
+
+bioavail.data<-bioavail.data%>%filter(standard_units!="NULL")
+```
+
+```{r}
+bioavail.data%>%group_by(description)%>%summarise(count=n())%>%arrange(desc(count))
+str(bioavail.data)
+
+hist(bioavail.data$standard_value)
+var(bioavail.data$standard_value)
+mean(bioavail.data$standard_value)
+median(bioavail.data$standard_value)
+
+```
+
+
+# Random Forest
+```{r}
+
+bioavail.rf.data<-bioavail.data%>%select(full_mwt,mw_freebase,psa,acd_most_apka,hba,hbd,acd_logp,acd_logd,rtb,acd_most_bpka,mw_monoisotopic,aromatic_rings, standard_value) 
+bioavail.rf.data<-drop_na(bioavail.rf.data)
+
+samp <- sample(nrow(bioavail.rf.data), 0.7 * nrow(bioavail.rf.data))
+bioavail.rf.train <- bioavail.rf.data[samp, ]#744
+bioavail.rf.test <- bioavail.rf.data[-samp, ]#497
+
+
+bioavail.x.rf.train<-bioavail.rf.train%>%select(-standard_value) # 68%
+bioavail.y.rf.train<-bioavail.rf.train$standard_value
+```
+
+```{r}
+bioavail.rf.mdl <-randomForest(bioavail.y.rf.train,x=bioavail.x.rf.train,type=1)
+print(bioavail.rf.mdl)
+varImpPlot(bioavail.rf.mdl)
+importance(bioavail.rf.mdl, scale = TRUE)
+
+bioavail.pred<-predict(bioavail.rf.mdl,newdata=bioavail.rf.test)
+
+plot(bioavail.pred,bioavail.rf.test$standard_value)
+abline(0,1,col="blue")
+###MSE propriamente dito, e n previsto como no print rf
+mean((bioavail.pred-bioavail.rf.test$standard_value)^2) #500+
+```

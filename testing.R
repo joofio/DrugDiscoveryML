@@ -3,10 +3,28 @@
 #preProcValues <- preProcess(feature.data, method = c("center","scale"))
 
 
+#str(head(data))
+#data%>%group_by(alogp)%>%summarise(count=n())%>%arrange(desc(count))#12323
+#data%>%group_by(standard_value)%>%summarise(count=n())%>%arrange(desc(count))#19850
+
+######deal with Nas
+
+#data%>%distinct(alogp)%>%arrange(desc(alogp))
+#colSums(is.na(data))
+
+#variable to measure
+aqsolubil.x.train<-aqsolubil.train%>%select(full_mwt,mw_freebase,psa,acd_most_apka,hba,hbd,acd_logp,acd_logd,rtb,acd_most_bpka,mw_monoisotopic,aromatic_rings) # 68%
+
+
+aqsolubil.data%>%group_by(standard_units)%>%summarise(count=n())%>%arrange(desc(count))
+aqsolubil.data%>%group_by(published_units)%>%summarise(count=n())%>%arrange(desc(published_units))
+
+
 print(preProcValues)
 train_processed <- predict(preProcValues, feature.data)
 str(train_transformed)
 
+#data%>%group_by(assay_id,description)%>%summarise(count=n())%>%arrange(desc(count))
 
 dmy <- dummyVars(" ~ .", data = feature.data,fullRank = T)
 print (dmy)
