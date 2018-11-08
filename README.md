@@ -37,5 +37,5 @@ The median is 11.2
   * Scale and normalize
   * Better feature selection
   * More methods
-* Introduce DrugBank Information
+* ~~Introduce DrugBank Information~~
 * ...
