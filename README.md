@@ -37,5 +37,7 @@ The median is 11.2
   * Scale and normalize
   * Better feature selection
   * More methods
-* Introduce DrugBank Information
+* ~~Introduce DrugBank Information~~
+* Finishing test in python with scikit-learn
+* Introduce KNIME, deepchem and RDkit and CNN
 * ...
