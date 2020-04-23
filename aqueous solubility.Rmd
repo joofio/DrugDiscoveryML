@@ -4,31 +4,250 @@ author: "João Almeida"
 date: "16 de Outubro de 2018"
 output: html_document
 ---
+```{r}
+library(caret)
+library(dpl06.0yr)
+library(dlookr)
+library(tidyr)
+library(caretEnsemble)
+```
 
 ```{r creating data file}
-set.seed(123)
 #Aqueous solubility
 aqsolubil.data<-data%>%filter(description=='Aqueous solubility')
 aqsolubil.data<-aqsolubil.data%>%filter(published_units!='mg ml-1')#só nos nulls
+aqsolubil.data[,c("tid","assay_id","confidence_score")]<-NULL
 ```
 
 
 ```{r checking value to predict}
 hist(aqsolubil.data$standard_value)
+
 var(aqsolubil.data$standard_value)
 mean(aqsolubil.data$standard_value)
 median(aqsolubil.data$standard_value)
+
+lapply(names(which(lapply(aqsolubil.data,is.numeric)==TRUE)),function(n){
+plot(aqsolubil.data[,n],aqsolubil.data$standard_value,xlab=n)
+  })
+```
+```{r}
+library(doParallel)
+cl <- makePSOCKcluster(5)
+registerDoParallel(cl)
 ```
 
-#Random Forest
+# Random Forest
 features foram testes e avaliadas em *feature selection*
+```{r model list}
+reg.model<-NULL
+for (i in 1:length(getModelInfo())){
+  if ("Regression" %in% getModelInfo()[[i]]$type){
+    #print()
+ # print(model$library)
+    reg.model<-c(reg.model,names(getModelInfo())[i])
+  }
+}
+reg.model
+```
+
+```{r novo rf}
+describe(aqsolubil.data)
+aqsolubil.data<-aqsolubil.data[,c("max_phase","therapeutic_flag","dosed_ingredient","structure_type","molecule_type","oral","parenteral","topical","black_box_warning","natural_product","first_in_class","chirality","prodrug","inorganic_flag","availability_type","polymer_flag","mw_freebase","alogp","hba","hbd","psa","rtb","ro3_pass","num_ro5_violations", "acd_most_apka","acd_most_bpka","acd_logp","acd_logd","molecular_species","full_mwt","aromatic_rings","heavy_atoms","num_alerts","qed_weighted",  "mw_monoisotopic","hba_lipinski",  "hbd_lipinski",  "num_lipinski_ro5_violations","standard_value")]
+aqsolubil.data<-drop_na(aqsolubil.data)
+
+set.seed(123)
+aqsolubil.data<-aqsolubil.data[!duplicated(aqsolubil.data),]
+train.index<-createDataPartition(aqsolubil.data$standard_value,p=0.75,list = FALSE)
+aqsolubil.train <- aqsolubil.data[train.index, ]#887
+aqsolubil.test <- aqsolubil.data[-train.index, ]#295
+nrow(aqsolubil.test)
+nrow(aqsolubil.train)
+
+control<-trainControl(method="repeatedcv",number=10,repeats = 10)
+str(aqsolubil.train)
+
+```
+```{r}
+set.seed(7)
+rf.model<-train(standard_value~.,data = aqsolubil.train,method="rf",trcontrol=control,metric="RMSE")
+rf.pred<-predict(rf.model,aqsolubil.test)
+plot(rf.pred)
+points(aqsolubil.test$standard_value,col="blue")
+RMSE(rf.pred,aqsolubil.test$standard_value)
+MAE(rf.pred,aqsolubil.test$standard_value)
+
+```
+
+```{r}
+set.seed(5)
+svm.model<-train(standard_value~.,data = aqsolubil.train,method="svmRadial",trcontrol=control,metric="RMSE")
+svm.pred<-predict(svm.model,aqsolubil.test)
+plot(svm.pred)
+points(aqsolubil.test$standard_value,col="blue")
+RMSE(svm.pred,aqsolubil.test$standard_value)
+MAE(svm.pred,aqsolubil.test$standard_value)
+```
+```{r}
+set.seed(5)
+svm.model<-train(standard_value~.,data = aqsolubil.train,method="svmRadial",trcontrol=control,metric="RMSE")
+svm.pred<-predict(svm.model,aqsolubil.test)
+plot(svm.pred)
+points(aqsolubil.test$standard_value,col="blue")
+RMSE(svm.pred,aqsolubil.test$standard_value)
+MAE(svm.pred,aqsolubil.test$standard_value)
+```
+
+```{r}
+set.seed(5)
+svm2.model<-train(standard_value~.,data = aqsolubil.train,method="svmLinear2",trcontrol=control,metric="RMSE")
+svm2.pred<-predict(svm2.model,aqsolubil.test)
+plot(svm2.pred)
+points(aqsolubil.test$standard_value,col="blue")
+RMSE(svm2.pred,aqsolubil.test$standard_value)
+MAE(svm2.pred,aqsolubil.test$standard_value)
+```
+
+
+```{r}
+set.seed(5)
+cub.model<-train(standard_value~.,data = aqsolubil.train,method="cubist",trcontrol=control,metric="RMSE")
+cub.pred<-predict(cub.model,aqsolubil.test)
+plot(cub.pred)
+points(aqsolubil.test$standard_value,col="blue")
+RMSE(cub.pred,aqsolubil.test$standard_value)
+MAE(cub.pred,aqsolubil.test$standard_value)
+```
+
+
+```{r}
+set.seed(5)
+bam.model<-train(standard_value~.,data = aqsolubil.train,method="bam",trcontrol=control,metric="RMSE")
+bam.pred<-predict(bam.model,aqsolubil.test)
+plot(bam.pred)
+points(aqsolubil.test$standard_value,col="blue")
+RMSE(bam.pred,aqsolubil.test$standard_value)
+MAE(bam.pred,aqsolubil.test$standard_value)
+```
+
+```{r}
+set.seed(5)
+glm.model<-train(standard_value~.,data = aqsolubil.train,method="glmStepAIC",trcontrol=control,metric="MAE")
+glm.pred<-predict(glm.model,aqsolubil.test)
+plot(glm.pred)
+points(aqsolubil.test$standard_value,col="blue")
+RMSE(glm.pred,aqsolubil.test$standard_value)
+MAE(glm.pred,aqsolubil.test$standard_value)
+```
+
+```{r}
+rmse<-list()
+mae<-list()
+errors<-list()
+for (i in reg.model[27:length(reg.model)]){
+  set.seed(5)
+  cat(paste("trying the method",i,"\n"))
+   tryCatch({
+   model<-train(standard_value~.,data = aqsolubil.train,method=i,trcontrol=control,metric="RMSE")
+   pred<-predict(model,aqsolubil.test)
+#plot(pred)
+#points(aqsolubil.test$standard_value,col="blue")
+rmse[i]<-RMSE(pred,aqsolubil.test$standard_value)
+mae[i]<-MAE(pred,aqsolubil.test$standard_value)
+  }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")
+    errors[i]<-e})
+
+}
+#cubst and kknn and gam and bam
+rmse
+mae
+```
+
+
+
+```{r}
+#caretlist
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##### old
 ```{r selecting data rf}
 aqsolubil.rf.data<-aqsolubil.data%>%select(mw_freebase, psa,acd_most_apka, acd_most_bpka, hba,hbd,rtb,mw_monoisotopic, aromatic_rings,full_mwt,standard_value) # 68%
 aqsolubil.rf.data<-drop_na(aqsolubil.rf.data)
 
 aqsolubil.rf.data<-aqsolubil.rf.data[!duplicated(aqsolubil.rf.data),]
-
-samp <- sample(nrow(aqsolubil.rf.data), 0.6 * nrow(aqsolubil.rf.data))
+set.seed(123)
+train.index<-createDataPartition(aqsolubil.rf.data,p=0.75)
 aqsolubil.rf.train <- aqsolubil.rf.data[samp, ]#744
 aqsolubil.rf.test <- aqsolubil.rf.data[-samp, ]#497
 

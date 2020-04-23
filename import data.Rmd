@@ -6,88 +6,45 @@ output:
   pdf_document: default
 ---
 
-Install packages needed and do not come from source
+Install packages needed and do not come from source bioconductor
 ```{r}
-#install.packages(c("bnlearn","gRain","pROC","epitools"))
-
-#install.packages(c("RANN","caret","plyr", "dplyr", "rfUtilities", "party", "e1071", "bnlearn", "neuralnet", "randomForest", "ggplot2"))
 #source("http://bioconductor.org/biocLite.R")
 #biocLite(c("graph","RBGL","Rgraphviz"))
 ```
 
-Activating needed packages
 ```{r echo=FALSE message=FALSE warning=FALSE}
-library(tidyr)
-library(party)
-library(randomForest)
-library(plyr)
-library(dplyr)
-library(rfUtilities)
-library(ggplot2)
-library(e1071)
-library(bnlearn)
-library(neuralnet)
-library(caret)
-library(mlbench)
-library('RANN')
-library(gridExtra)
-library(knitr)
 ```
-
-```{r}
-set.seed(123)
-```
-
 ```{r}
 #read csv origin Chembl23
 data<-read.csv(file="product_adme.csv")
+data[,c("md","cp","cr","at","molregno.1","molregno.2","molregno.3","doc_id.1","doc_id.2","aa","src_id.1","chembl_id.1","assay_id.1","record_id.1")]<-NULL
+str(data)
+
 #numeric
-data$standard_value <-as.numeric(as.character(data$standard_value))
-data$alogp <-as.numeric(as.character(data$alogp))
-data$hba <-as.numeric(as.character(data$hba))
-data$hbd <-as.numeric(as.character(data$hbd))
-data$mw_freebase <-as.numeric(as.character(data$mw_freebase))
-data$acd_most_apka <-as.numeric(as.character(data$acd_most_apka))
-data$acd_most_bpka <-as.numeric(as.character(data$acd_most_bpka))
-data$num_lipinski_ro5_violations <-as.numeric(as.character(data$num_lipinski_ro5_violations))
-data$psa <-as.numeric(as.character(data$psa))
-data$acd_logp <-as.numeric(as.character(data$acd_logp))
-data$acd_logd <-as.numeric(as.character(data$acd_logd))
-data$heavy_atoms <-as.numeric(as.character(data$heavy_atoms))
-data$qed_weighted <-as.numeric(as.character(data$qed_weighted))
-data$num_ro5_violations <-as.numeric(as.character(data$num_ro5_violations))
-data$rtb <-as.numeric(as.character(data$rtb))
-data$hba_lipinski <-as.numeric(as.character(data$hba_lipinski))
-data$mw_monoisotopic <-as.numeric(as.character(data$mw_monoisotopic))
-data$full_mwt <-as.numeric(as.character(data$full_mwt))
-data$aromatic_rings <-as.numeric(as.character(data$aromatic_rings))
-data$mw_monoisotopic <-as.numeric(as.character(data$mw_monoisotopic))
-data$hbd_lipinski <-as.numeric(as.character(data$hbd_lipinski))
-data$published_value <-as.numeric(as.character(data$published_value))
-#character
-data$standard_units <-as.character(data$standard_units)
-data$description <-as.character(data$description)
-data$md <-as.character(data$md)
-data$cp <-as.character(data$cp)
-data$at <-as.character(data$at)
-data$molecular_species <-as.character(data$molecular_species)
+columns.to.numeric<-c("standard_value","alogp","hba","hbd","mw_freebase","acd_most_apka","acd_most_bpka","num_lipinski_ro5_violations","psa","acd_logp","acd_logd",
+                      "heavy_atoms","qed_weighted","num_ro5_violations","rtb","hba_lipinski","mw_monoisotopic","full_mwt","aromatic_rings","hbd_lipinski","first_approval","withdrawn_year","usan_year","published_value","src_compound_id","pchembl_value")
+data[,columns.to.numeric]<-lapply(lapply(data[,columns.to.numeric],as.character),as.numeric)
+
+
+#check hist of numeric
+lapply(names(which(lapply(data,is.numeric)==TRUE)),function(n){
+  hist(data[,n],main=paste("Histogram of", n))
+})
+
+#factor
+columns.to.factor<-c("oral", "parenteral" ,"topical", "max_phase" ,"therapeutic_flag","dosed_ingredient","black_box_warning","natural_product","first_in_class","chirality","prodrug","inorganic_flag","availability_type",
+                     "polymer_flag","withdrawn_flag","standard_flag","potential_duplicate")
+data[,columns.to.factor]<-lapply(data[,columns.to.factor],as.factor)
 
 ```
 
-```{r}
-data<-data%>%select(-md,-cp,-molregno.1,-cr,-molregno.2,-molregno.3,-doc_id.1,-doc_id.2,-aa,-src_id.1,-chembl_id.1,-assay_id.1,-record_id.1,-at)
-#show(data)
-
-```
 
 ```{r}
-hist(data$therapeutic_flag)
-barplot(table(data$chebi_par_id))
-barplot(table(data$first_approval))
-hist(data$oral)
-hist(data$natural_product)
-hist(data$polymer_flag)
-barplot(table(data$description))
+plot(data$therapeutic_flag)
+hist(data$first_approval)
+plot(data$oral)
+plot(data$natural_product)
+plot(data$polymer_flag)
 
 
 ```
@@ -104,8 +61,7 @@ dbdata$Water.Solubility.EXP <-as.character(dbdata$Water.Solubility.EXP)
 
 dbdata<-dbdata%>%select('drugbank_id', 'name', 'type',  'average.mass', 'monoisotopic.mass', 'volume.of.distribution', 'clearance', 'half.life', 'toxicity', 'metabolism', 'metabolism.1', 'absorption', 'smiles', 'melting.point', 'logS.EXP', 'logP.EXP', 'pKa.EXP', 'Isoelectric.Point', 'Molecular.Weight', 'Molecular.Formula', 'Hydrophobicity', 'Boiling.Point', 'Caco2.Permeability', 'Water.Solubility.EXP', 'PSA.calc', 'Refractivity.calc', 'Polarizability', 'Ghose.Filter', 'MDDR.Like.Rule')
 
-dbcolumns<-names(dbdata)
-print(paste(dbcolumns, collapse="', '"))
+names(dbdata)
 
 dbdata$Boiling.Point <-as.numeric(as.character(dbdata$Boiling.Point))
 dbdata$name <-as.character(dbdata$name)
