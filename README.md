@@ -16,7 +16,11 @@ There are testing issues for logP, Protein Binding and Aqueous solubility
 
 The mean is -2.145955  
 The median is -2.25  
-![alt text](/images/aqsolubil.png "Aqueous Solubility results")
+
+| Model     | RMSE     | MAE     | info                      | 
+|-----------|----------|---------|---------------------------|
+| glm stack | 0.959    | 0.524   | kknn + cubist + bam + gam |
+
 
 #### LogP 
 

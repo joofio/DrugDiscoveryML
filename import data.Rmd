@@ -12,11 +12,9 @@ Install packages needed and do not come from source bioconductor
 #biocLite(c("graph","RBGL","Rgraphviz"))
 ```
 
-```{r echo=FALSE message=FALSE warning=FALSE}
-```
 ```{r}
 #read csv origin Chembl23
-data<-read.csv(file="product_adme.csv")
+data<-read.csv(file="C:/Users/joaof/Dropbox/product_adme.csv")
 data[,c("md","cp","cr","at","molregno.1","molregno.2","molregno.3","doc_id.1","doc_id.2","aa","src_id.1","chembl_id.1","assay_id.1","record_id.1")]<-NULL
 str(data)
 
